@@ -365,6 +365,7 @@ local function api_load_project()
     end
     share_link = share_link_input
     save_state()
+    load_calibration_offsets()
     -- Auto-load comments for selected version
     if selected_version_idx > 0 then
       api_load_comments()
@@ -578,7 +579,7 @@ local function draw_song_version_section()
     local key = get_offset_key()
     if key ~= "" then
       calibration_offsets[key] = reaper.GetCursorPosition()
-      reaper.SetExtState("Mixnote", "offset_" .. key, tostring(calibration_offsets[key]), true)
+      reaper.SetProjExtState(0, "Mixnote", "offset_" .. key, tostring(calibration_offsets[key]))
     end
   end
   if offset == 0 then
@@ -761,11 +762,15 @@ if is_linked and share_link_input ~= "" then
   end
 end
 
--- Load saved calibration offsets (per song)
-for _, song in ipairs(songs) do
-  local key = tostring(song.id)
-  local saved = reaper.GetExtState("Mixnote", "offset_" .. key)
-  if saved ~= "" then calibration_offsets[key] = tonumber(saved) end
+-- Load saved calibration offsets (per song) from REAPER project
+local function load_calibration_offsets()
+  calibration_offsets = {}
+  for _, song in ipairs(songs) do
+    local key = tostring(song.id)
+    local rv, saved = reaper.GetProjExtState(0, "Mixnote", "offset_" .. key)
+    if rv > 0 and saved ~= "" then calibration_offsets[key] = tonumber(saved) end
+  end
 end
+load_calibration_offsets()
 
 reaper.defer(loop)
