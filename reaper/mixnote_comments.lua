@@ -235,6 +235,10 @@ local comments = {}
 local loading = false
 local error_msg = ""
 
+-- Admin project list
+local admin_projects = {}
+local selected_project_idx = 0
+
 -- Calibration: offset per song/version key
 local calibration_offsets = {}
 local current_offset_key = ""
@@ -313,11 +317,37 @@ local function api_login()
       jwt_token = data.access_token
       logged_in = true
       save_state()
+      api_load_admin_projects()
     else
       login_error = "Invalid response"
     end
   else
     login_error = "Login failed (HTTP " .. tostring(status) .. ")"
+  end
+end
+
+local function api_load_admin_projects()
+  if not logged_in or jwt_token == "" then return end
+  local url = server_url .. "/admin/projects"
+  local status, resp = http_request("GET", url, nil, jwt_token)
+  if status == 200 then
+    admin_projects = json.decode(resp) or {}
+    -- Restore previously selected project from RPP
+    if reaper_project_id then
+      local rv, saved_id = reaper.GetProjExtState(0, "Mixnote", "selected_project_id")
+      if rv > 0 and saved_id ~= "" then
+        for i, p in ipairs(admin_projects) do
+          if p.share_link == saved_id then
+            selected_project_idx = i
+            share_link_input = p.share_link
+            api_load_project()
+            break
+          end
+        end
+      end
+    end
+  else
+    error_msg = "Failed to load projects (HTTP " .. tostring(status) .. ")"
   end
 end
 
@@ -498,38 +528,62 @@ local function draw_login_section()
 end
 
 local function draw_project_section()
-  -- Compact: share link + load on one line
-  reaper.ImGui_Text(ctx, "Share Link:")
-  reaper.ImGui_SameLine(ctx, 85)
-  reaper.ImGui_SetNextItemWidth(ctx, -50)
-  local changed
-  changed, share_link_input = reaper.ImGui_InputText(ctx, "##share_link", share_link_input)
-  reaper.ImGui_SameLine(ctx)
-  if reaper.ImGui_Button(ctx, "Load##load_btn") then
-    api_load_project()
+  if logged_in then
+    -- Admin mode: project dropdown
+    local current_proj = admin_projects[selected_project_idx]
+    local proj_label = current_proj and current_proj.title or "Select project..."
+
+    reaper.ImGui_Text(ctx, "Project:")
+    reaper.ImGui_SameLine(ctx, 85)
+    reaper.ImGui_SetNextItemWidth(ctx, -1)
+    if reaper.ImGui_BeginCombo(ctx, "##project_select", proj_label) then
+      for i, p in ipairs(admin_projects) do
+        if reaper.ImGui_Selectable(ctx, p.title, i == selected_project_idx) then
+          selected_project_idx = i
+          share_link_input = p.share_link
+          api_load_project()
+          -- Save selection in RPP
+          if reaper_project_id then
+            reaper.SetProjExtState(0, "Mixnote", "selected_project_id", p.share_link)
+          end
+        end
+      end
+      reaper.ImGui_EndCombo(ctx)
+    end
+  else
+    -- Client mode: share link input
+    reaper.ImGui_Text(ctx, "Share Link:")
+    reaper.ImGui_SameLine(ctx, 85)
+    reaper.ImGui_SetNextItemWidth(ctx, -50)
+    local changed
+    changed, share_link_input = reaper.ImGui_InputText(ctx, "##share_link", share_link_input)
+    reaper.ImGui_SameLine(ctx)
+    if reaper.ImGui_Button(ctx, "Load##load_btn") then
+      api_load_project()
+    end
+
+    -- Per-project link status
+    if reaper_project_id then
+      if is_linked then
+        reaper.ImGui_TextColored(ctx, COL_GREEN, "Linked")
+        reaper.ImGui_SameLine(ctx)
+        if reaper.ImGui_SmallButton(ctx, "Unlink") then
+          unlink_project()
+        end
+      else
+        if share_link_input ~= "" and project_data then
+          if reaper.ImGui_SmallButton(ctx, "Link to Project") then
+            link_project()
+          end
+        end
+      end
+    else
+      reaper.ImGui_TextColored(ctx, COL_ORANGE, "Save REAPER project to enable linking")
+    end
   end
 
   if project_data then
     reaper.ImGui_TextColored(ctx, COL_ACCENT, project_data.title or "")
-  end
-
-  -- Per-project link status
-  if reaper_project_id then
-    if is_linked then
-      reaper.ImGui_TextColored(ctx, COL_GREEN, "Linked")
-      reaper.ImGui_SameLine(ctx)
-      if reaper.ImGui_SmallButton(ctx, "Unlink") then
-        unlink_project()
-      end
-    else
-      if share_link_input ~= "" and project_data then
-        if reaper.ImGui_SmallButton(ctx, "Link to Project") then
-          link_project()
-        end
-      end
-    end
-  else
-    reaper.ImGui_TextColored(ctx, COL_ORANGE, "Save REAPER project to enable linking")
   end
 
   if error_msg ~= "" then
