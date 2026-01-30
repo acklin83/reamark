@@ -456,18 +456,18 @@ local function draw_login_section()
 
   if reaper.ImGui_TreeNode(ctx, "Login", reaper.ImGui_TreeNodeFlags_DefaultOpen()) then
     reaper.ImGui_Text(ctx, "Server:")
-    reaper.ImGui_SameLine(ctx, 70)
+    reaper.ImGui_SameLine(ctx, 85)
     local changed
     reaper.ImGui_SetNextItemWidth(ctx, -1)
     changed, server_url = reaper.ImGui_InputText(ctx, "##server_url", server_url)
 
     reaper.ImGui_Text(ctx, "User:")
-    reaper.ImGui_SameLine(ctx, 70)
+    reaper.ImGui_SameLine(ctx, 85)
     reaper.ImGui_SetNextItemWidth(ctx, -1)
     changed, username = reaper.ImGui_InputText(ctx, "##username", username)
 
     reaper.ImGui_Text(ctx, "Password:")
-    reaper.ImGui_SameLine(ctx, 70)
+    reaper.ImGui_SameLine(ctx, 85)
     reaper.ImGui_SetNextItemWidth(ctx, -1)
     changed, password = reaper.ImGui_InputText(ctx, "##password", password, reaper.ImGui_InputTextFlags_Password())
 
@@ -488,6 +488,8 @@ end
 
 local function draw_project_section()
   -- Compact: share link + load on one line
+  reaper.ImGui_Text(ctx, "Share Link:")
+  reaper.ImGui_SameLine(ctx, 85)
   reaper.ImGui_SetNextItemWidth(ctx, -50)
   local changed
   changed, share_link_input = reaper.ImGui_InputText(ctx, "##share_link", share_link_input)
