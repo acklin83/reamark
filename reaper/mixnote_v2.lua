@@ -503,7 +503,7 @@ local function api_login()
     if data and data.access_token then
       jwt_token = data.access_token
       logged_in = true
-      if author_name == "" then author_name = username end
+      author_name = username
       save_state()
       api_load_admin_projects()
     else
@@ -963,7 +963,7 @@ local function draw_comments_section()
           reaper.ImGui_Unindent(ctx, 12)
         end
 
-        -- Reply button (right-aligned, accent text)
+        -- Reply button (right-aligned with Delete)
         reaper.ImGui_Spacing(ctx)
         local reply_w = 48
         reaper.ImGui_Dummy(ctx, card_w - reply_w - 8, 0)
