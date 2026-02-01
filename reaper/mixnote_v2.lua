@@ -237,6 +237,9 @@ local new_comment_text = ""
 local reply_comment_id = nil
 local reply_text = ""
 
+local edit_comment_id = nil
+local edit_text = ""
+
 local filter_mode = 0
 
 ---------------------------------------------------------------------------
@@ -591,6 +594,29 @@ local function api_resolve(comment_id)
   end
 end
 
+local function api_update_comment(comment_id, text)
+  if not logged_in then return end
+  local url = server_url .. "/admin/comments/" .. tostring(comment_id)
+  local body = json.encode({text = text})
+  local status, resp = http_request("PUT", url, body, jwt_token)
+  if status == 200 then
+    api_load_comments()
+  else
+    error_msg = "Failed to update comment (HTTP " .. tostring(status) .. ")"
+  end
+end
+
+local function api_delete_comment(comment_id)
+  if not logged_in then return end
+  local url = server_url .. "/admin/comments/" .. tostring(comment_id)
+  local status, resp = http_request("DELETE", url, nil, jwt_token)
+  if status == 204 or status == 200 then
+    api_load_comments()
+  else
+    error_msg = "Failed to delete comment (HTTP " .. tostring(status) .. ")"
+  end
+end
+
 ---------------------------------------------------------------------------
 -- UI Drawing
 ---------------------------------------------------------------------------
@@ -801,11 +827,11 @@ local function draw_new_comment_section()
   local relative_tc = math.max(0, cursor_pos - offset)
   reaper.ImGui_TextColored(ctx, C.accent, "@" .. format_timecode(relative_tc))
 
-  -- Comment input + button
-  reaper.ImGui_SetNextItemWidth(ctx, -80)
-  changed, new_comment_text = reaper.ImGui_InputText(ctx, "##new_comment", new_comment_text)
+  -- Comment input (2 lines) + button
+  local line_h = reaper.ImGui_GetTextLineHeight(ctx)
+  changed, new_comment_text = reaper.ImGui_InputTextMultiline(ctx, "##new_comment", new_comment_text, -80, line_h * 2 + 10)
   reaper.ImGui_SameLine(ctx)
-  if reaper.ImGui_Button(ctx, "Add##add_btn", 70, 0) and new_comment_text ~= "" then
+  if reaper.ImGui_Button(ctx, "Add##add_btn", 70, line_h * 2 + 10) and new_comment_text ~= "" then
     api_create_comment(relative_tc, new_comment_text)
     new_comment_text = ""
   end
@@ -853,14 +879,18 @@ local function draw_comments_section()
 
         -- Card background via draw list
         local dl = reaper.ImGui_GetWindowDrawList(ctx)
+        local card_pad = 8
+        -- Reserve left padding for card content
+        reaper.ImGui_Indent(ctx, card_pad)
+
         local cx, cy = reaper.ImGui_GetCursorScreenPos(ctx)
         local card_w = reaper.ImGui_GetContentRegionAvail(ctx)
 
         reaper.ImGui_BeginGroup(ctx)
 
-        -- Timecode button (transparent bg, accent text)
+        -- Header row: @timecode  Author  [Done] [Edit] [X]
         local tc_col = c.solved and C.text_muted or C.accent
-        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), 0x00000000)
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), C.bg_border)
         reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), C.accent_dim)
         reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(), C.accent)
         reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), tc_col)
@@ -873,24 +903,87 @@ local function draw_comments_section()
         reaper.ImGui_PopStyleColor(ctx, 4)
 
         reaper.ImGui_SameLine(ctx)
-        reaper.ImGui_TextColored(ctx, c.solved and C.text_muted or C.text_dim, (c.author_name or ""))
-        reaper.ImGui_SameLine(ctx)
-        if c.solved then
-          reaper.ImGui_TextColored(ctx, C.green, "Done")
+        reaper.ImGui_TextColored(ctx, c.solved and C.text_muted or C.text, (c.author_name or ""))
+
+        -- Admin actions on same header line (right side): Done checkbox, Edit, Delete
+        if logged_in then
+          reaper.ImGui_SameLine(ctx)
+          local done_changed, done_val = reaper.ImGui_Checkbox(ctx, "Done##done", c.solved or false)
+          if done_changed then
+            api_resolve(c.id)
+          end
+
+          reaper.ImGui_SameLine(ctx)
+          reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), C.text_dim)
+          if sec_button("E##edit") then
+            if edit_comment_id == c.id then
+              edit_comment_id = nil
+            else
+              edit_comment_id = c.id
+              edit_text = c.text or ""
+            end
+          end
+          reaper.ImGui_PopStyleColor(ctx)
+
+          reaper.ImGui_SameLine(ctx)
+          reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), C.red)
+          if sec_button("X##del") then
+            api_delete_comment(c.id)
+          end
+          reaper.ImGui_PopStyleColor(ctx)
         else
-          reaper.ImGui_TextColored(ctx, C.amber, "Open")
+          -- Non-admin: just show status
+          reaper.ImGui_SameLine(ctx)
+          if c.solved then
+            reaper.ImGui_TextColored(ctx, C.green, "Done")
+          else
+            reaper.ImGui_TextColored(ctx, C.amber, "Open")
+          end
         end
 
-        -- Comment text
-        if c.solved then
-          reaper.ImGui_TextColored(ctx, C.text_muted, c.text or "")
+        -- Edit mode: show input instead of text
+        if edit_comment_id == c.id then
+          reaper.ImGui_Spacing(ctx)
+          local line_h = reaper.ImGui_GetTextLineHeight(ctx)
+          reaper.ImGui_SetNextItemWidth(ctx, -1)
+          local echanged
+          echanged, edit_text = reaper.ImGui_InputTextMultiline(ctx, "##edit_input", edit_text, -1, line_h * 2 + 10)
+          if sec_button("Save##save_edit") and edit_text ~= "" then
+            api_update_comment(c.id, edit_text)
+            edit_comment_id = nil
+          end
+          reaper.ImGui_SameLine(ctx)
+          if sec_button("Cancel##cancel_edit") then
+            edit_comment_id = nil
+          end
         else
-          reaper.ImGui_TextWrapped(ctx, c.text or "")
+          -- Comment text
+          if c.solved then
+            reaper.ImGui_TextColored(ctx, C.text_muted, c.text or "")
+          else
+            reaper.ImGui_TextWrapped(ctx, c.text or "")
+          end
         end
 
-        -- Action buttons
+        -- Existing replies
+        if c.replies and #c.replies > 0 then
+          reaper.ImGui_Indent(ctx, 12)
+          reaper.ImGui_Spacing(ctx)
+          for _, r in ipairs(c.replies) do
+            -- Reply with left accent bar effect via indented text
+            reaper.ImGui_TextColored(ctx, C.text, r.text or "")
+            reaper.ImGui_TextColored(ctx, C.text_muted, "  -- " .. (r.author_name or ""))
+          end
+          reaper.ImGui_Unindent(ctx, 12)
+        end
+
+        -- Reply button (text-style like website)
         reaper.ImGui_Spacing(ctx)
-        if sec_button("Reply") then
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), 0x00000000)
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), 0x00000000)
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(), 0x00000000)
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), C.accent)
+        if reaper.ImGui_SmallButton(ctx, "Reply") then
           if reply_comment_id == c.id then
             reply_comment_id = nil
           else
@@ -898,17 +991,11 @@ local function draw_comments_section()
             reply_text = ""
           end
         end
-        if logged_in then
-          reaper.ImGui_SameLine(ctx)
-          local resolve_label = c.solved and "Reopen" or "Resolve"
-          if sec_button(resolve_label) then
-            api_resolve(c.id)
-          end
-        end
+        reaper.ImGui_PopStyleColor(ctx, 4)
 
         -- Reply input
         if reply_comment_id == c.id then
-          reaper.ImGui_Indent(ctx, 16)
+          reaper.ImGui_Indent(ctx, 12)
           reaper.ImGui_Spacing(ctx)
           reaper.ImGui_SetNextItemWidth(ctx, -60)
           local rchanged
@@ -919,23 +1006,7 @@ local function draw_comments_section()
             reply_comment_id = nil
             reply_text = ""
           end
-          reaper.ImGui_Unindent(ctx, 16)
-        end
-
-        -- Existing replies
-        if c.replies and #c.replies > 0 then
-          reaper.ImGui_Indent(ctx, 16)
-          reaper.ImGui_Spacing(ctx)
-          for _, r in ipairs(c.replies) do
-            reaper.ImGui_TextColored(ctx, C.text_muted, (r.author_name or "") .. ":")
-            reaper.ImGui_SameLine(ctx)
-            if c.solved then
-              reaper.ImGui_TextColored(ctx, C.text_muted, r.text or "")
-            else
-              reaper.ImGui_TextWrapped(ctx, r.text or "")
-            end
-          end
-          reaper.ImGui_Unindent(ctx, 16)
+          reaper.ImGui_Unindent(ctx, 12)
         end
 
         reaper.ImGui_EndGroup(ctx)
@@ -943,13 +1014,12 @@ local function draw_comments_section()
         -- Draw card background behind the group
         local _, group_h = reaper.ImGui_GetItemRectSize(ctx)
         local card_bg = c.solved and C.card_solved or C.card_open
-        local pad_x = 8
-        local pad_y = 8
         reaper.ImGui_DrawList_AddRectFilled(dl,
-          cx - pad_x, cy - pad_y,
-          cx + card_w + pad_x, cy + group_h + pad_y,
+          cx - card_pad, cy - card_pad,
+          cx + card_w + card_pad, cy + group_h + card_pad,
           card_bg, 4)
 
+        reaper.ImGui_Unindent(ctx, card_pad)
         reaper.ImGui_PopID(ctx)
         reaper.ImGui_Spacing(ctx)
         reaper.ImGui_Spacing(ctx)
