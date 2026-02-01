@@ -201,22 +201,15 @@ Song C          1 open
 
 ---
 
-### Task 6: Lua/ImGui Beautification (NEW)
+### Task 6: Lua/ImGui Beautification (DONE ✅)
 
-**Goal:** Visually improve the existing `mixnote_comments.lua` script to match the Mixnote website's look & feel as closely as ReaImGui allows.
+**Result:** Created `mixnote_v2.lua` with website-matching dark theme, styled comment cards, accent colors, improved spacing. Also fixed author_name default ("Guest" → username) and Reply button right-alignment.
 
-**Branch:** `lua-beautification`
+---
 
-**Scope:**
-- Dark theme color scheme matching the website
-- Better spacing, padding, visual hierarchy
-- Styled comment cards (background, borders, rounded feel)
-- Accent colors for interactive elements
-- Font sizing and readability improvements
-- Clean separation of sections
-- Status indicators (open/resolved) with proper styling
+### Task 7: Client Comment Edit/Delete (DONE ✅)
 
-**Approach:** Improve the existing script, no framework change. ReaImGui supports custom colors, style vars, fonts, and draw lists.
+**Result:** Clients (share link access, no login) can now edit and delete their own comments. Added `PUT` and `DELETE` endpoints on `/api/projects/{share_link}/comments/{id}` (no auth required). Reply form layout fixed to match admin frontend (vertical stacking, no overflow).
 
 ---
 

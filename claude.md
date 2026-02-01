@@ -213,6 +213,8 @@ POST   /admin/projects
 GET    /admin/projects/{id}
 PUT    /admin/projects/{id}
 DELETE /admin/projects/{id}
+PUT    /api/projects/{uuid}/comments/{id}          # Edit comment (client, no auth)
+DELETE /api/projects/{uuid}/comments/{id}          # Delete comment (client, no auth)
 POST   /admin/projects/{id}/songs
 POST   /admin/songs/{id}/versions
 POST   /admin/upload
@@ -401,10 +403,24 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
 - **Decision:** Keep the Lua/ImGui script (`mixnote_comments.lua`) as the REAPER integration. Improve it instead of replacing it.
 - **Also considered C++ REAPER extension** - rejected as overkill for a comment/form UI.
 
-### 2025-02-01: Lua/ImGui Beautification (IN PROGRESS)
+### 2025-02-01: Lua/ImGui Beautification (DONE)
 - **Branch:** `lua-beautification`
 - **Goal:** Visually improve `mixnote_comments.lua` to look closer to the Mixnote website. Dark theme, better colors, spacing, comment card styling.
 - **Approach:** Stay with Lua/ReaImGui, use style customization (PushStyleColor, PushStyleVar, fonts, draw lists).
+- **Result:** Created `mixnote_v2.lua` with website-style dark theme, styled comment cards, accent colors, improved spacing.
+
+### 2025-02-01: REAPER Script Fixes + Client Edit/Delete
+- **Branch:** `claude/review-previous-work-6qOhZ`
+- **Changes:**
+  1. **REAPER author_name fix**: Default comment author was "Guest" instead of logged-in username. Fixed by always setting `author_name = username` on login (ExtState had stale "Guest" value).
+  2. **REAPER Reply button alignment**: Reply button right-aligned to match Delete button using `SameLine(ctx, card_w - 8 - reply_w)` positioning.
+  3. **Client comment Edit/Delete**: Added public (no JWT) endpoints `PUT` and `DELETE` on `/api/projects/{share_link}/comments/{comment_id}`. Added Edit/Delete buttons to client comment cards with prompt/confirm dialogs.
+  4. **Client reply form fix**: Reply form Cancel button overflowed card boundary. Fixed by restructuring to vertical layout (text input, author input, buttons on separate rows) with `overflow-hidden`, matching admin frontend layout.
+- **Files modified:**
+  - `reaper/mixnote_v2.lua` — author_name fix, Reply button alignment
+  - `backend/app/routers/comments.py` — client edit/delete endpoints
+  - `backend/app/schemas.py` — CommentUpdate schema (if not already present)
+  - `frontend/client/js/client.js` — edit/delete UI, reply form layout fix
 
 ## Development Notes
 - Prefer simple, maintainable solutions over complex frameworks
