@@ -628,6 +628,19 @@ local function draw_login_section()
       logged_in = false
       jwt_token = ""
       if not remember_password then password = "" end
+      -- Reset view to initial state
+      project_data = nil
+      songs = {}
+      comments = {}
+      share_link = ""
+      selected_song_idx = 1
+      selected_version_idx = 1
+      selected_project_idx = 0
+      admin_projects = {}
+      edit_comment_id = nil
+      reply_comment_id = nil
+      new_comment_text = ""
+      error_msg = ""
     end
     reaper.ImGui_SameLine(ctx)
     reaper.ImGui_TextColored(ctx, C.text_muted, server_url)
@@ -931,7 +944,10 @@ local function draw_comments_section()
           local line_h = reaper.ImGui_GetTextLineHeight(ctx)
           reaper.ImGui_SetNextItemWidth(ctx, -1)
           local echanged
-          echanged, edit_text = reaper.ImGui_InputTextMultiline(ctx, "##edit_input", edit_text, -1, line_h * 2 + 10)
+          local num_lines = 1
+          for _ in edit_text:gmatch("\n") do num_lines = num_lines + 1 end
+          if num_lines < 2 then num_lines = 2 end
+          echanged, edit_text = reaper.ImGui_InputTextMultiline(ctx, "##edit_input", edit_text, -1, line_h * num_lines + 10)
           if sec_button("Save##save_edit") and edit_text ~= "" then
             api_update_comment(c.id, edit_text)
             edit_comment_id = nil
