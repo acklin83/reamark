@@ -966,8 +966,8 @@ local function draw_comments_section()
         -- Reply button (right-aligned with Delete)
         reaper.ImGui_Spacing(ctx)
         local reply_w = 48
-        reaper.ImGui_Dummy(ctx, card_w - reply_w - 8, 0)
-        reaper.ImGui_SameLine(ctx)
+        reaper.ImGui_Dummy(ctx, 1, 0)
+        reaper.ImGui_SameLine(ctx, card_w - 8 - reply_w)
         reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), C.accent)
         if sec_button("Reply") then
           if reply_comment_id == c.id then
