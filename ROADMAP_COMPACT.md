@@ -201,6 +201,25 @@ Song C          1 open
 
 ---
 
+### Task 6: Lua/ImGui Beautification (NEW)
+
+**Goal:** Visually improve the existing `mixnote_comments.lua` script to match the Mixnote website's look & feel as closely as ReaImGui allows.
+
+**Branch:** `lua-beautification`
+
+**Scope:**
+- Dark theme color scheme matching the website
+- Better spacing, padding, visual hierarchy
+- Styled comment cards (background, borders, rounded feel)
+- Accent colors for interactive elements
+- Font sizing and readability improvements
+- Clean separation of sections
+- Status indicators (open/resolved) with proper styling
+
+**Approach:** Improve the existing script, no framework change. ReaImGui supports custom colors, style vars, fonts, and draw lists.
+
+---
+
 ## Testing Checklist
 
 **Mobile UI:**

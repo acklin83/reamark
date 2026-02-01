@@ -399,6 +399,12 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
 - **Attempted:** Replace Lua/ImGui script with Python WebView approach (local HTTP + WebSocket server opening a browser window)
 - **Result:** REAPER has no built-in browser/webview. Opening an external browser provides no advantage over just using the Mixnote web interface directly. Cancelled after ~1 hour.
 - **Decision:** Keep the Lua/ImGui script (`mixnote_comments.lua`) as the REAPER integration. Improve it instead of replacing it.
+- **Also considered C++ REAPER extension** - rejected as overkill for a comment/form UI.
+
+### 2025-02-01: Lua/ImGui Beautification (IN PROGRESS)
+- **Branch:** `lua-beautification`
+- **Goal:** Visually improve `mixnote_comments.lua` to look closer to the Mixnote website. Dark theme, better colors, spacing, comment card styling.
+- **Approach:** Stay with Lua/ReaImGui, use style customization (PushStyleColor, PushStyleVar, fonts, draw lists).
 
 ## Development Notes
 - Prefer simple, maintainable solutions over complex frameworks
