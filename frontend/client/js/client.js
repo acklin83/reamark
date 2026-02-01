@@ -301,7 +301,7 @@ function renderComments() {
       <p class="text-sm text-gray-400 ${c.solved ? 'line-through' : ''}">${esc(c.text)}</p>
       ${(c.replies && c.replies.length > 0) ? c.replies.map(r => `<div class="mt-2 ml-3 pl-3 border-l-2 border-accent/30"><p class="text-sm text-gray-300">${esc(r.text)}</p><span class="text-xs text-gray-500">— ${esc(r.author_name)} · ${formatDate(r.created_at)}</span></div>`).join('') : ''}
       <div class="mt-2 flex items-center gap-1">
-        <button onclick="toggleReplyInput(${c.id})" class="text-sm text-accent hover:text-indigo-400 transition py-2 px-3 min-h-[44px]">Reply</button>
+        <button onclick="toggleReplyInput(${c.id})" class="text-xs text-accent hover:text-indigo-400 transition py-2 px-3 min-h-[44px]">Reply</button>
         <span class="ml-auto flex items-center gap-1">
           <button onclick="editComment(${c.id}, \`${esc(c.text).replace(/`/g, '\\`')}\`)" class="text-xs text-gray-500 hover:text-gray-300 transition py-2 px-2 min-h-[44px]">Edit</button>
           <button onclick="deleteComment(${c.id})" class="text-xs text-red-400/60 hover:text-red-400 transition py-2 px-2 min-h-[44px]">Delete</button>

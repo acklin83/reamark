@@ -310,18 +310,18 @@ function renderComments() {
           @${formatTime(c.timecode)}
         </button>
         <span class="text-sm font-medium text-gray-300">${esc(c.author_name)}</span>
-        <label class="ml-auto flex items-center gap-1 cursor-pointer">
-          <input type="checkbox" ${c.solved ? 'checked' : ''} onchange="toggleSolved(${c.id}, this.checked)"
-            class="accent-green-500">
-          <span class="text-xs ${c.solved ? 'text-green-400' : 'text-gray-500'}">Done</span>
-        </label>
-        <button onclick="editComment(${c.id}, '${escAttr(c.text)}')" class="text-gray-400 hover:text-white transition ml-1 touch-btn"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
-        <button onclick="deleteComment(${c.id})" class="text-red-400/60 hover:text-red-400 transition touch-btn"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        ${c.solved ? '<span class="text-xs text-green-400 ml-auto">✓ Done</span>' : ''}
+        <span class="text-xs text-gray-600 ${c.solved ? '' : 'ml-auto'}">${formatDate(c.created_at)}</span>
       </div>
       <p class="text-sm text-gray-400 ${c.solved ? 'line-through' : ''}">${esc(c.text)}</p>
       ${(c.replies && c.replies.length > 0) ? c.replies.map(r => `<div class="mt-2 ml-3 pl-3 border-l-2 border-accent/30"><p class="text-sm text-gray-300">${esc(r.text)}</p><span class="text-xs text-gray-500">— ${esc(r.author_name)} · ${formatDate(r.created_at)}</span></div>`).join('') : ''}
-      <div class="mt-2">
-        <button onclick="toggleReplyInput(${c.id})" class="text-sm text-accent hover:text-indigo-400 transition py-2 px-3 min-h-[44px]">Reply</button>
+      <div class="mt-2 flex items-center gap-1">
+        <button onclick="toggleReplyInput(${c.id})" class="text-xs text-accent hover:text-indigo-400 transition py-2 px-3 min-h-[44px]">Reply</button>
+        <span class="ml-auto flex items-center gap-1">
+          <button onclick="toggleSolved(${c.id}, ${!c.solved})" class="text-xs ${c.solved ? 'text-green-400 hover:text-green-300' : 'text-gray-500 hover:text-gray-300'} transition py-2 px-2 min-h-[44px]">${c.solved ? '✓ Done' : 'Done'}</button>
+          <button onclick="editComment(${c.id}, '${escAttr(c.text)}')" class="text-xs text-gray-500 hover:text-gray-300 transition py-2 px-2 min-h-[44px]">Edit</button>
+          <button onclick="deleteComment(${c.id})" class="text-xs text-red-400/60 hover:text-red-400 transition py-2 px-2 min-h-[44px]">Delete</button>
+        </span>
       </div>
       <div id="reply-input-${c.id}" class="hidden mt-2 rounded-lg p-3" style="background:#2d2d2d;">
         <input type="text" id="reply-text-${c.id}" placeholder="Write a reply..."
