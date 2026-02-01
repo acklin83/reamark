@@ -207,8 +207,8 @@ if reaper_project_id then
 end
 
 if server_url == "" then server_url = "https://mix.stoersender.ch" end
-if author_name == "" then author_name = "Frank" end
 if username == "" then username = "admin" end
+if author_name == "" then author_name = username end
 
 local password = reaper.GetExtState("Mixnote", "password")
 if password == nil then password = "" end
@@ -635,7 +635,7 @@ local function draw_login_section()
   end
 
   if reaper.ImGui_TreeNode(ctx, "Login", reaper.ImGui_TreeNodeFlags_DefaultOpen()) then
-    local label_w = 85
+    local label_w = 95
 
     reaper.ImGui_TextColored(ctx, C.text_dim, "Server")
     reaper.ImGui_SameLine(ctx, label_w)
@@ -961,8 +961,11 @@ local function draw_comments_section()
           reaper.ImGui_Unindent(ctx, 12)
         end
 
-        -- Reply button (same sec_button styling)
+        -- Reply button (right-aligned, accent text)
         reaper.ImGui_Spacing(ctx)
+        local reply_w = 48
+        reaper.ImGui_Dummy(ctx, card_w - reply_w - 8, 0)
+        reaper.ImGui_SameLine(ctx)
         reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), C.accent)
         if sec_button("Reply") then
           if reply_comment_id == c.id then
