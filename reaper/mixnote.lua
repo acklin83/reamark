@@ -825,7 +825,7 @@ local function draw_song_version_section()
   if share_link ~= "" and selected_version_idx > 0 then
     local wx, _ = reaper.ImGui_GetWindowSize(ctx)
     local pad = reaper.ImGui_GetStyleVar(ctx, reaper.ImGui_StyleVar_WindowPadding())
-    reaper.ImGui_SameLine(ctx, wx - pad - 85)
+    reaper.ImGui_SameLine(ctx, wx - pad - 95)
     reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FramePadding(), 2, 2)
     local changed
     changed, autoplay_enabled = reaper.ImGui_Checkbox(ctx, "Autoplay", autoplay_enabled)
