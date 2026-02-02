@@ -807,6 +807,7 @@ local function draw_song_version_section()
 
   -- Calibration
   local offset = get_current_offset()
+  local full_w = reaper.ImGui_GetContentRegionAvail(ctx)
   reaper.ImGui_TextColored(ctx, C.text_muted, "Offset: " .. format_timecode(offset))
   reaper.ImGui_SameLine(ctx)
   if sec_button("Set from Cursor") then
@@ -823,9 +824,7 @@ local function draw_song_version_section()
 
   -- Autoplay toggle (right-aligned on same line)
   if share_link ~= "" and selected_version_idx > 0 then
-    local avail = reaper.ImGui_GetContentRegionAvail(ctx)
-    local cx = reaper.ImGui_GetCursorPosX(ctx)
-    reaper.ImGui_SameLine(ctx, cx + avail - 90)
+    reaper.ImGui_SameLine(ctx, full_w - 85)
     reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FramePadding(), 2, 2)
     local changed
     changed, autoplay_enabled = reaper.ImGui_Checkbox(ctx, "Autoplay", autoplay_enabled)
