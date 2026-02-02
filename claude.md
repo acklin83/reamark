@@ -227,6 +227,7 @@ GET    /api/projects/{short-uuid}                       # Project metadata
 GET    /api/projects/{short-uuid}/songs/{song_id}       # Song details
 GET    /api/projects/{short-uuid}/versions              # All versions
 GET    /api/audio/{version_id}                          # Audio file streaming
+GET    /api/versions/{version_id}/peaks                 # Waveform peak data (JSON, lazy-generated + cached)
 POST   /api/projects/{short-uuid}/comments              # Post comment
 GET    /api/projects/{short-uuid}/comments              # Get all comments
 ```
@@ -366,7 +367,7 @@ PATCH  /api/projects/{uuid}/comments/{id}/resolve-client    # Toggle resolved (s
 
 ## REAPER Integration
 
-### Script: `reaper/mixnote_comments.lua`
+### Script: `reaper/mixnote.lua`
 A ReaImGui-based script for managing Mixnote comments directly from REAPER.
 
 **Requirements:**
@@ -374,7 +375,7 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
 - ReaImGui extension (install via ReaPack)
 
 **Installation:**
-1. Copy `reaper/mixnote_comments.lua` to your REAPER Scripts folder
+1. Copy `reaper/mixnote.lua` to your REAPER Scripts folder
 2. In REAPER: Actions → Show Action List → Load ReaScript
 3. Assign a keyboard shortcut if desired
 
@@ -382,17 +383,26 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
 - Admin login (JWT authentication via username/password)
 - Load project by share link
 - Song/version selection dropdowns
+- **Waveform display**: Peak data loaded from backend, rendered with ImGui DrawList
+  - Comment markers (colored vertical lines: amber=open, green=resolved)
+  - Real-time playhead tracking (follows REAPER cursor/play position)
+  - Click on waveform to seek (with calibration offset)
+  - Hover over marker shows tooltip with comment text
+- **Autoplay toggle**: Controls whether clicking waveform/timecode seeks+plays or only seeks
 - **Calibration**: Set song start offset from REAPER cursor position (persisted per song/version)
 - **New comments**: Author name + text, timecode from current REAPER cursor position (relative to calibration offset)
 - **Comment list**: Filterable (All / Open / Resolved), sorted by timecode
-- **Jump**: Sets REAPER edit cursor to comment timecode + starts playback
+- **Jump**: Sets REAPER edit cursor to comment timecode (respects autoplay toggle)
 - **Reply**: Inline reply input per comment
 - **Resolve/Unresolve**: Toggle via admin JWT (requires login)
+- **Edit/Delete**: Comments editable and deletable by admin
+- **Favourite**: Toggle favourite version (star button)
 - **Refresh**: Reload comments from server
 
 **Persisted state** (via `reaper.ExtState`):
 - Server URL, username, author name, last share link
 - Calibration offsets per song/version
+- Autoplay toggle state
 
 ## Session Log
 
@@ -407,29 +417,43 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
 - **Branch:** `lua-beautification`
 - **Goal:** Visually improve `mixnote_comments.lua` to look closer to the Mixnote website. Dark theme, better colors, spacing, comment card styling.
 - **Approach:** Stay with Lua/ReaImGui, use style customization (PushStyleColor, PushStyleVar, fonts, draw lists).
-- **Result:** Created `mixnote_v2.lua` with website-style dark theme, styled comment cards, accent colors, improved spacing.
+- **Result:** Website-style dark theme, styled comment cards, accent colors, improved spacing.
 
 ### 2025-02-01: REAPER Script Fixes + Client Edit/Delete
-- **Branch:** `claude/review-previous-work-6qOhZ`
 - **Changes:**
   1. **REAPER author_name fix**: Default comment author was "Guest" instead of logged-in username. Fixed by always setting `author_name = username` on login (ExtState had stale "Guest" value).
-  2. **REAPER Reply button alignment**: Reply button right-aligned to match Delete button using `SameLine(ctx, card_w - 8 - reply_w)` positioning.
-  3. **Client comment Edit/Delete**: Added public (no JWT) endpoints `PUT` and `DELETE` on `/api/projects/{share_link}/comments/{comment_id}`. Added Edit/Delete buttons to client comment cards with prompt/confirm dialogs.
-  4. **Client reply form fix**: Reply form Cancel button overflowed card boundary. Fixed by restructuring to vertical layout (text input, author input, buttons on separate rows) with `overflow-hidden`, matching admin frontend layout.
+  2. **REAPER Reply button alignment**: Reply button right-aligned to match Delete button.
+  3. **Client comment Edit/Delete**: Added public (no JWT) endpoints `PUT` and `DELETE` on `/api/projects/{share_link}/comments/{comment_id}`. Added Edit/Delete buttons to client comment cards.
+  4. **Client reply form fix**: Reply form restructured to vertical layout to prevent overflow.
 - **Files modified:**
-  - `reaper/mixnote_v2.lua` — author_name fix, Reply button alignment
+  - `reaper/mixnote.lua` — author_name fix, Reply button alignment
   - `backend/app/routers/comments.py` — client edit/delete endpoints
-  - `backend/app/schemas.py` — CommentUpdate schema (if not already present)
+  - `backend/app/schemas.py` — CommentUpdate schema
   - `frontend/client/js/client.js` — edit/delete UI, reply form layout fix
 
 ### 2025-02-01: Logout Reset + Edit Line Breaks
-- **Branch:** `claude/review-previous-work-6qOhZ`
 - **Changes:**
-  1. **Logout reset**: On logout, all project/comment state (project_data, songs, comments, share_link, selections, edit/reply state) is cleared so the UI returns to the initial login view.
-  2. **Edit mode line breaks**: Edit textarea now auto-sizes height based on number of newlines in the comment text (`num_lines` counted via `gmatch("\n")`), minimum 2 lines.
+  1. **Logout reset**: On logout, all state cleared so UI returns to initial login view.
+  2. **Edit mode line breaks**: Edit textarea auto-sizes height based on newlines.
 - **Files modified:**
-  - `reaper/mixnote_v2.lua`
-- **Note:** "Add Song" / "Upload New Version" from REAPER was considered but rejected — ReaImGui has no file browser dialog, making the UX impractical.
+  - `reaper/mixnote.lua`
+- **Note:** "Add Song" / "Upload New Version" from REAPER rejected — no file browser in ReaImGui.
+
+### 2025-02-02: Waveform Player + Autoplay Toggle
+- **Changes:**
+  1. **Backend peak generation**: New `audio_utils.py` with pydub-based peak generation (800 samples, lazy + cached as `.peaks.json`). New endpoint `GET /api/versions/{id}/peaks`.
+  2. **Dockerfile**: Added ffmpeg dependency for audio processing.
+  3. **Lua waveform rendering**: Peak data loaded per version, rendered with ImGui DrawList. Performance-optimized (downsampled to pixel width). Comment markers as colored lines, real-time playhead.
+  4. **Autoplay toggle**: Checkbox on offset line controls seek+play vs seek-only behavior for waveform clicks and timecode buttons. Persisted in ExtState.
+  5. **Marker tooltips**: Hovering over comment markers on waveform shows tooltip with timecode, author and text.
+  6. **Login section**: Removed collapsible TreeNode, now always visible.
+  7. **Renamed**: `mixnote_v2.lua` → `mixnote.lua`
+- **Files modified:**
+  - `backend/Dockerfile` — ffmpeg install
+  - `backend/requirements.txt` — pydub
+  - `backend/app/audio_utils.py` — NEW: peak generation + caching
+  - `backend/app/routers/projects.py` — peaks endpoint
+  - `reaper/mixnote.lua` — waveform, autoplay, tooltips, layout
 
 ## Development Notes
 - Prefer simple, maintainable solutions over complex frameworks
