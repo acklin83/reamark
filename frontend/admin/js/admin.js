@@ -501,11 +501,19 @@ const LIGHT_COLOR_DEFAULTS = {
   light_waveform_color: '#d1d5db', light_waveform_progress_color: '#4f46e5',
 };
 
+let adminSettings = null; // full settings with email config (admin only)
+
 async function loadAppSettings() {
   try {
     const res = await fetch('/api/settings');
     if (res.ok) { appSettings = await res.json(); applySettings(appSettings); }
   } catch { /* defaults */ }
+}
+
+async function loadAdminSettings() {
+  try {
+    adminSettings = await api('/admin/settings');
+  } catch { adminSettings = null; }
 }
 
 function getThemeColors(s) {
@@ -606,11 +614,42 @@ function populateSettingsUI() {
     $('delete-logo-btn').classList.add('hidden');
     $('logo-size-control').classList.add('hidden');
   }
+  // Email settings
+  if (adminSettings) {
+    $('email-enabled').checked = adminSettings.email_notifications_enabled || false;
+    $('email-provider').value = adminSettings.email_provider || 'none';
+    $('email-admin-address').value = adminSettings.email_admin_address || '';
+    $('smtp-host').value = adminSettings.smtp_host || '';
+    $('smtp-port').value = adminSettings.smtp_port || 587;
+    $('smtp-username').value = adminSettings.smtp_username || '';
+    $('smtp-password').value = '';
+    $('smtp-password').placeholder = adminSettings.smtp_password_set ? '••••••• (set)' : 'Password';
+    $('smtp-tls').checked = adminSettings.smtp_use_tls !== false;
+    $('smtp-from-address').value = adminSettings.smtp_from_address || '';
+    $('smtp-from-name').value = adminSettings.smtp_from_name || 'Mixnote';
+    $('email-api-key').value = '';
+    $('email-api-key').placeholder = adminSettings.email_api_key_set ? '••••••• (set)' : 'API Key';
+    $('email-api-domain').value = adminSettings.email_api_domain || '';
+    // Share from-address/name between SMTP and API fields
+    $('api-from-address').value = adminSettings.smtp_from_address || '';
+    $('api-from-name').value = adminSettings.smtp_from_name || 'Mixnote';
+    updateProviderFields();
+  }
 }
 
-$('settings-btn').addEventListener('click', () => {
+function updateProviderFields() {
+  const provider = $('email-provider').value;
+  $('smtp-fields').classList.toggle('hidden', provider !== 'smtp');
+  $('api-fields').classList.toggle('hidden', provider !== 'sendgrid' && provider !== 'mailgun');
+  $('mailgun-domain-field').classList.toggle('hidden', provider !== 'mailgun');
+}
+$('email-provider').addEventListener('change', updateProviderFields);
+
+$('settings-btn').addEventListener('click', async () => {
   hideAllViews(); $('settings-view').classList.remove('hidden'); destroyPlayer();
+  await loadAdminSettings();
   populateSettingsUI();
+  loadTemplatesList();
 });
 
 $('back-from-settings').addEventListener('click', () => showProjects());
@@ -625,8 +664,28 @@ $('save-settings-btn').addEventListener('click', async () => {
   COLOR_FIELDS.forEach(f => { data[f] = $(fieldToInputId(f)).value; });
   LIGHT_COLOR_FIELDS.forEach(f => { data[f] = $(fieldToInputId(f)).value; });
   data.logo_height = parseInt($('logo-size').value);
+  // Email settings
+  data.email_notifications_enabled = $('email-enabled').checked;
+  data.email_provider = $('email-provider').value;
+  data.email_admin_address = $('email-admin-address').value.trim();
+  const provider = $('email-provider').value;
+  if (provider === 'smtp') {
+    data.smtp_host = $('smtp-host').value.trim();
+    data.smtp_port = parseInt($('smtp-port').value) || 587;
+    data.smtp_username = $('smtp-username').value.trim();
+    if ($('smtp-password').value) data.smtp_password = $('smtp-password').value;
+    data.smtp_use_tls = $('smtp-tls').checked;
+    data.smtp_from_address = $('smtp-from-address').value.trim();
+    data.smtp_from_name = $('smtp-from-name').value.trim() || 'Mixnote';
+  } else if (provider === 'sendgrid' || provider === 'mailgun') {
+    if ($('email-api-key').value) data.email_api_key = $('email-api-key').value;
+    if (provider === 'mailgun') data.email_api_domain = $('email-api-domain').value.trim();
+    data.smtp_from_address = $('api-from-address').value.trim();
+    data.smtp_from_name = $('api-from-name').value.trim() || 'Mixnote';
+  }
   try {
-    appSettings = await api('/admin/settings', { method: 'PUT', json: data });
+    adminSettings = await api('/admin/settings', { method: 'PUT', json: data });
+    appSettings = adminSettings; // AdminSettingsOut extends SettingsOut
     applySettings(appSettings);
     populateSettingsUI();
     $('save-status').textContent = 'Saved!';
@@ -679,6 +738,143 @@ $('theme-toggle-btn').addEventListener('click', () => {
   }
   updateThemeIcon();
 });
+
+// ============================================================
+// TEST EMAIL
+// ============================================================
+$('test-email-btn').addEventListener('click', async () => {
+  $('test-email-status').textContent = 'Sending...';
+  $('test-email-status').className = 'text-sm text-gray-400';
+  try {
+    await api('/admin/settings/test-email', { method: 'POST', json: {} });
+    $('test-email-status').textContent = 'Sent!';
+    $('test-email-status').className = 'text-sm text-green-400';
+  } catch (err) {
+    $('test-email-status').textContent = err.message;
+    $('test-email-status').className = 'text-sm text-red-400';
+  }
+  setTimeout(() => $('test-email-status').textContent = '', 5000);
+});
+
+// ============================================================
+// EMAIL TEMPLATES
+// ============================================================
+let emailTemplates = [];
+let editingTemplateId = null;
+
+async function loadTemplatesList() {
+  try { emailTemplates = await api('/admin/email-templates'); } catch { emailTemplates = []; }
+  if (emailTemplates.length === 0) {
+    $('templates-list').innerHTML = ''; $('templates-empty').classList.remove('hidden'); return;
+  }
+  $('templates-empty').classList.add('hidden');
+  $('templates-list').innerHTML = emailTemplates.map(t => `
+    <div class="bg-dark-700 rounded-lg p-3 flex items-center justify-between">
+      <div>
+        <div class="text-sm font-medium">${esc(t.name)}</div>
+        <div class="text-xs text-gray-500">${esc(t.subject)}</div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="editTemplate(${t.id})" class="text-xs text-gray-400 hover:text-white transition">Edit</button>
+        <button onclick="deleteTemplate(${t.id})" class="text-xs text-red-400/60 hover:text-red-400 transition">Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+$('new-template-btn').addEventListener('click', () => {
+  editingTemplateId = null;
+  $('tpl-modal-title').textContent = 'New Template';
+  $('tpl-name').value = ''; $('tpl-subject').value = ''; $('tpl-body').value = '';
+  $('tpl-preview-area').classList.add('hidden');
+  $('tpl-overlay').classList.remove('hidden');
+  $('tpl-name').focus();
+});
+
+window.editTemplate = async function(id) {
+  try {
+    const tpl = await api(`/admin/email-templates/${id}`);
+    editingTemplateId = id;
+    $('tpl-modal-title').textContent = 'Edit Template';
+    $('tpl-name').value = tpl.name;
+    $('tpl-subject').value = tpl.subject;
+    $('tpl-body').value = tpl.body_html;
+    $('tpl-preview-area').classList.add('hidden');
+    $('tpl-overlay').classList.remove('hidden');
+    $('tpl-name').focus();
+  } catch (err) { alert(err.message); }
+};
+
+window.deleteTemplate = async function(id) {
+  if (!confirm('Delete this template?')) return;
+  try {
+    await api(`/admin/email-templates/${id}`, { method: 'DELETE' });
+    loadTemplatesList();
+  } catch (err) { alert(err.message); }
+};
+
+$('tpl-cancel').addEventListener('click', () => $('tpl-overlay').classList.add('hidden'));
+$('tpl-overlay').addEventListener('click', (e) => { if (e.target === $('tpl-overlay')) $('tpl-overlay').classList.add('hidden'); });
+
+$('tpl-save').addEventListener('click', async () => {
+  const name = $('tpl-name').value.trim();
+  const subject = $('tpl-subject').value.trim();
+  const body_html = $('tpl-body').value;
+  if (!name || !subject || !body_html) { alert('All fields required'); return; }
+  try {
+    if (editingTemplateId) {
+      await api(`/admin/email-templates/${editingTemplateId}`, { method: 'PUT', json: { name, subject, body_html } });
+    } else {
+      await api('/admin/email-templates', { method: 'POST', json: { name, subject, body_html } });
+    }
+    $('tpl-overlay').classList.add('hidden');
+    loadTemplatesList();
+  } catch (err) { alert(err.message); }
+});
+
+$('tpl-preview-btn').addEventListener('click', async () => {
+  if (!editingTemplateId) { alert('Save the template first to preview'); return; }
+  try {
+    const preview = await api(`/admin/email-templates/${editingTemplateId}/preview`, { method: 'POST', json: {} });
+    $('tpl-preview-subject').textContent = preview.subject;
+    $('tpl-preview-body').innerHTML = preview.body_html;
+    $('tpl-preview-area').classList.remove('hidden');
+  } catch (err) { alert(err.message); }
+});
+
+// ============================================================
+// PROJECT EMAIL SETTINGS
+// ============================================================
+async function populateProjectEmailFields() {
+  if (!currentProject) return;
+  $('project-notify-email').value = currentProject.notification_email || '';
+  // Load templates for dropdown
+  try { emailTemplates = await api('/admin/email-templates'); } catch { emailTemplates = []; }
+  $('project-email-template').innerHTML = '<option value="0">Default</option>' +
+    emailTemplates.map(t => `<option value="${t.id}" ${currentProject.email_template_id === t.id ? 'selected' : ''}>${esc(t.name)}</option>`).join('');
+}
+
+$('save-project-email-btn').addEventListener('click', async () => {
+  if (!currentProject) return;
+  try {
+    await api(`/admin/projects/${currentProject.id}`, {
+      method: 'PUT',
+      json: {
+        notification_email: $('project-notify-email').value.trim(),
+        email_template_id: parseInt($('project-email-template').value) || 0,
+      },
+    });
+    $('save-project-email-btn').textContent = 'Saved!';
+    setTimeout(() => $('save-project-email-btn').textContent = 'Save', 1500);
+  } catch (err) { alert(err.message); }
+});
+
+// Hook into openProject to populate email fields
+const _originalOpenProject = window.openProject;
+window.openProject = async function(id) {
+  await _originalOpenProject(id);
+  populateProjectEmailFields();
+};
 
 init();
 updateThemeIcon();

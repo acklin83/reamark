@@ -13,10 +13,14 @@ from ..auth import (
     verify_password,
 )
 from ..database import get_db
-from ..models import AdminUser, Comment, Project, Song, Version
+from ..email_service import build_notification_context, render_template
+from ..models import AdminUser, Comment, EmailTemplate, Project, Song, Version
 from ..schemas import (
     CommentOut,
     CommentUpdate,
+    EmailTemplateCreate,
+    EmailTemplateOut,
+    EmailTemplateUpdate,
     LoginRequest,
     ProjectCreate,
     ProjectDetail,
@@ -117,6 +121,8 @@ def get_project(
         "id": project.id,
         "title": project.title,
         "share_link": project.share_link,
+        "notification_email": project.notification_email,
+        "email_template_id": project.email_template_id,
         "created_at": project.created_at,
         "updated_at": project.updated_at,
         "songs": _enrich_songs(project.songs, db),
@@ -133,7 +139,12 @@ def update_project(
     project = db.query(Project).filter(Project.id == project_id).first()
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
-    project.title = req.title
+    if req.title is not None:
+        project.title = req.title
+    if req.notification_email is not None:
+        project.notification_email = req.notification_email.strip() or None
+    if req.email_template_id is not None:
+        project.email_template_id = req.email_template_id if req.email_template_id > 0 else None
     db.commit()
     db.refresh(project)
     return project
@@ -329,3 +340,98 @@ def delete_comment(
         raise HTTPException(status_code=404, detail="Comment not found")
     db.delete(comment)
     db.commit()
+
+
+# --- Email Templates ---
+
+@router.get("/email-templates", response_model=list[EmailTemplateOut])
+def list_email_templates(
+    _admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    return db.query(EmailTemplate).order_by(EmailTemplate.id).all()
+
+
+@router.post("/email-templates", response_model=EmailTemplateOut, status_code=status.HTTP_201_CREATED)
+def create_email_template(
+    req: EmailTemplateCreate,
+    _admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    tpl = EmailTemplate(name=req.name, subject=req.subject, body_html=req.body_html)
+    db.add(tpl)
+    db.commit()
+    db.refresh(tpl)
+    return tpl
+
+
+@router.get("/email-templates/{template_id}", response_model=EmailTemplateOut)
+def get_email_template(
+    template_id: int,
+    _admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    tpl = db.query(EmailTemplate).filter(EmailTemplate.id == template_id).first()
+    if tpl is None:
+        raise HTTPException(status_code=404, detail="Template not found")
+    return tpl
+
+
+@router.put("/email-templates/{template_id}", response_model=EmailTemplateOut)
+def update_email_template(
+    template_id: int,
+    req: EmailTemplateUpdate,
+    _admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    tpl = db.query(EmailTemplate).filter(EmailTemplate.id == template_id).first()
+    if tpl is None:
+        raise HTTPException(status_code=404, detail="Template not found")
+    if req.name is not None:
+        tpl.name = req.name
+    if req.subject is not None:
+        tpl.subject = req.subject
+    if req.body_html is not None:
+        tpl.body_html = req.body_html
+    db.commit()
+    db.refresh(tpl)
+    return tpl
+
+
+@router.delete("/email-templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_email_template(
+    template_id: int,
+    _admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    tpl = db.query(EmailTemplate).filter(EmailTemplate.id == template_id).first()
+    if tpl is None:
+        raise HTTPException(status_code=404, detail="Template not found")
+    db.delete(tpl)
+    db.commit()
+
+
+@router.post("/email-templates/{template_id}/preview")
+def preview_email_template(
+    template_id: int,
+    _admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    tpl = db.query(EmailTemplate).filter(EmailTemplate.id == template_id).first()
+    if tpl is None:
+        raise HTTPException(status_code=404, detail="Template not found")
+    sample_context = {
+        "project_title": "Demo Album",
+        "song_title": "Track 01 - Intro",
+        "version_label": "Vocal Up Mix",
+        "version_number": 2,
+        "author_name": "Client Name",
+        "comment_text": "Die Vocals sind hier etwas zu laut, bitte um 2dB runter.",
+        "timecode": "1:45",
+        "share_url": "https://mix.stoersender.ch/a1b2c3d4e5f6",
+        "is_reply": False,
+        "parent_comment_text": "",
+        "parent_comment_author": "",
+    }
+    subject, body = render_template(tpl, sample_context)
+    return {"subject": subject, "body_html": body}

@@ -467,6 +467,28 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
   - `frontend/client/js/client.js` — light-mode CSS overrides, waveform theme update
   - `ROADMAP.md` — NEW
 
+### 2026-02-10: Email Notifications
+- **Changes:**
+  1. **Email service**: New `email_service.py` with SMTP, SendGrid, Mailgun support. Jinja2 template rendering. Background task sending (never blocks comment flow).
+  2. **EmailTemplate model**: New table for customizable email templates with Jinja2 placeholders. Default template seeded on startup.
+  3. **AppSettings extended**: Email provider config (provider, host, port, credentials, from address/name), global admin email, enable toggle.
+  4. **Project extended**: Per-project `notification_email` (overrides global) and `email_template_id` (selectable template).
+  5. **Comment hooks**: `create_comment` and `reply_to_comment` schedule `send_comment_notification` via FastAPI BackgroundTasks.
+  6. **Admin UI**: Email settings section (provider selector, conditional fields), template CRUD (create/edit/delete/preview), project email config (notification email + template dropdown).
+  7. **Admin settings endpoint**: `GET /admin/settings` returns extended settings with email config (passwords/keys never exposed). `POST /admin/settings/test-email` for testing.
+  8. **DB migration**: Idempotent `ALTER TABLE` statements for existing SQLite databases.
+- **Files modified:**
+  - `backend/requirements.txt` — jinja2, httpx
+  - `backend/app/models.py` — EmailTemplate, AppSettings email fields, Project email fields
+  - `backend/app/schemas.py` — AdminSettingsOut, EmailTemplate schemas, ProjectUpdate extended
+  - `backend/app/main.py` — migration, seed
+  - `backend/app/email_service.py` — NEW
+  - `backend/app/routers/settings.py` — admin settings, test email
+  - `backend/app/routers/admin.py` — template CRUD, project update
+  - `backend/app/routers/comments.py` — BackgroundTasks hooks
+  - `frontend/admin/index.html` — email settings UI, template UI, project email fields
+  - `frontend/admin/js/admin.js` — email settings logic, template CRUD, project email save
+
 ## Development Notes
 - Prefer simple, maintainable solutions over complex frameworks
 - Direct, efficient code - no unnecessary abstractions

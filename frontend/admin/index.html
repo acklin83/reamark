@@ -110,6 +110,24 @@
           <button id="delete-project-btn" class="text-sm text-red-400 hover:text-red-300 transition shrink-0">Delete</button>
         </div>
       </div>
+      <!-- Project Email Settings -->
+      <div class="bg-dark-800 rounded-lg p-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Notification E-Mail (optional)</label>
+            <input id="project-notify-email" type="email" placeholder="Global admin email used if empty"
+              class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Email Template</label>
+            <select id="project-email-template" class="styled w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+              <option value="0">Default</option>
+            </select>
+          </div>
+          <button id="save-project-email-btn" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 rounded text-sm transition h-[38px]">Save</button>
+        </div>
+      </div>
+
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wide">Songs</h3>
         <button id="add-song-btn" class="px-3 py-1.5 bg-dark-700 hover:bg-dark-600 rounded text-sm transition">+ Add Song</button>
@@ -258,6 +276,119 @@
           <span id="save-status" class="text-sm text-green-400"></span>
         </div>
       </div>
+
+      <!-- Email Notifications -->
+      <div class="bg-dark-800 rounded-lg p-6 mb-6 mt-6">
+        <h3 class="text-lg font-semibold mb-4">Email Notifications</h3>
+        <div class="space-y-4">
+          <label class="flex items-center gap-3">
+            <input id="email-enabled" type="checkbox" class="w-4 h-4 accent-indigo-500">
+            <span class="text-sm">Enable email notifications on new comments</span>
+          </label>
+
+          <div>
+            <label class="block text-sm text-gray-400 mb-1">Provider</label>
+            <select id="email-provider" class="styled w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+              <option value="none">None</option>
+              <option value="smtp">SMTP</option>
+              <option value="sendgrid">SendGrid</option>
+              <option value="mailgun">Mailgun</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm text-gray-400 mb-1">Admin E-Mail (recipient)</label>
+            <input id="email-admin-address" type="email" placeholder="studio@example.com"
+              class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+          </div>
+
+          <!-- SMTP Fields -->
+          <div id="smtp-fields" class="hidden space-y-3 pl-2 border-l-2 border-accent/30">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">SMTP Host</label>
+                <input id="smtp-host" type="text" placeholder="smtp.gmail.com"
+                  class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Port</label>
+                <input id="smtp-port" type="number" value="587"
+                  class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Username</label>
+                <input id="smtp-username" type="text"
+                  class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">Password</label>
+                <input id="smtp-password" type="password" placeholder="••••••••"
+                  class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+              </div>
+            </div>
+            <label class="flex items-center gap-2">
+              <input id="smtp-tls" type="checkbox" checked class="w-4 h-4 accent-indigo-500">
+              <span class="text-sm">Use TLS</span>
+            </label>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">From Address</label>
+                <input id="smtp-from-address" type="email" placeholder="noreply@example.com"
+                  class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">From Name</label>
+                <input id="smtp-from-name" type="text" placeholder="Mixnote"
+                  class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+              </div>
+            </div>
+          </div>
+
+          <!-- API Fields (SendGrid / Mailgun) -->
+          <div id="api-fields" class="hidden space-y-3 pl-2 border-l-2 border-accent/30">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">API Key</label>
+              <input id="email-api-key" type="password" placeholder="••••••••"
+                class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+            </div>
+            <div id="mailgun-domain-field" class="hidden">
+              <label class="block text-xs text-gray-500 mb-1">Mailgun Domain</label>
+              <input id="email-api-domain" type="text" placeholder="mg.example.com"
+                class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">From Address</label>
+                <input id="api-from-address" type="email" placeholder="noreply@example.com"
+                  class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">From Name</label>
+                <input id="api-from-name" type="text" placeholder="Mixnote"
+                  class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 pt-2">
+            <button id="test-email-btn" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 rounded text-sm transition">Send Test E-Mail</button>
+            <span id="test-email-status" class="text-sm"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Templates -->
+      <div class="bg-dark-800 rounded-lg p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold">Email Templates</h3>
+          <button id="new-template-btn" class="px-3 py-1.5 bg-dark-700 hover:bg-dark-600 rounded text-sm transition">+ New Template</button>
+        </div>
+        <div id="templates-list" class="space-y-2"></div>
+        <div id="templates-empty" class="hidden text-center text-gray-500 py-6 text-sm">No templates.</div>
+        <p class="text-xs text-gray-500 mt-3">Available placeholders: <code>{{ project_title }}</code>, <code>{{ song_title }}</code>, <code>{{ version_label }}</code>, <code>{{ version_number }}</code>, <code>{{ author_name }}</code>, <code>{{ comment_text }}</code>, <code>{{ timecode }}</code>, <code>{{ share_url }}</code>, <code>{{ is_reply }}</code>, <code>{{ parent_comment_text }}</code>, <code>{{ parent_comment_author }}</code></p>
+      </div>
     </div>
   </div>
 
@@ -306,6 +437,42 @@
       <div class="flex justify-end gap-3">
         <button id="upload-cancel" class="px-4 py-2 text-sm text-gray-400 hover:text-white transition">Cancel</button>
         <button id="upload-confirm" class="hidden px-4 py-2 bg-accent hover:bg-indigo-600 rounded text-sm font-medium transition">Upload</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Edit Modal -->
+  <div id="tpl-overlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div class="bg-dark-800 rounded-lg p-6 w-full max-w-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+      <h3 id="tpl-modal-title" class="text-lg font-semibold mb-4">New Template</h3>
+      <div class="space-y-3 mb-4">
+        <div>
+          <label class="block text-sm text-gray-400 mb-1">Name</label>
+          <input id="tpl-name" type="text" placeholder="Template name"
+            class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-1">Subject</label>
+          <input id="tpl-subject" type="text" placeholder="New comment on {{ project_title }}"
+            class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-sm text-gray-400 mb-1">Body (HTML)</label>
+          <textarea id="tpl-body" rows="12" placeholder="HTML template with {{ placeholders }}"
+            class="w-full px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none font-mono text-xs"></textarea>
+        </div>
+        <div id="tpl-preview-area" class="hidden">
+          <label class="block text-sm text-gray-400 mb-1">Preview</label>
+          <div id="tpl-preview-subject" class="text-sm font-medium mb-1"></div>
+          <div id="tpl-preview-body" class="bg-white rounded p-4 text-sm" style="color:#333;"></div>
+        </div>
+      </div>
+      <div class="flex justify-between">
+        <button id="tpl-preview-btn" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 rounded text-sm transition">Preview</button>
+        <div class="flex gap-3">
+          <button id="tpl-cancel" class="px-4 py-2 text-sm text-gray-400 hover:text-white transition">Cancel</button>
+          <button id="tpl-save" class="px-4 py-2 bg-accent hover:bg-indigo-600 rounded text-sm font-medium transition">Save</button>
+        </div>
       </div>
     </div>
   </div>

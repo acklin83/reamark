@@ -26,7 +26,9 @@ class ProjectCreate(BaseModel):
 
 
 class ProjectUpdate(BaseModel):
-    title: str = Field(min_length=1, max_length=200)
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    notification_email: str | None = None
+    email_template_id: int | None = None
 
 
 class ProjectSummary(BaseModel):
@@ -45,6 +47,8 @@ class ProjectDetail(BaseModel):
     id: str
     title: str
     share_link: str
+    notification_email: str | None = None
+    email_template_id: int | None = None
     created_at: datetime
     updated_at: datetime
     songs: list["SongOut"]
@@ -147,6 +151,19 @@ class SettingsUpdate(BaseModel):
     light_waveform_progress_color: str | None = Field(default=None, pattern=r'^#[0-9A-Fa-f]{6}$')
     logo_height: int | None = Field(default=None, ge=16, le=120)
     clients_can_resolve: bool | None = None
+    # Email settings
+    email_provider: str | None = Field(default=None, pattern=r'^(none|smtp|sendgrid|mailgun)$')
+    email_notifications_enabled: bool | None = None
+    email_admin_address: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int | None = Field(default=None, ge=1, le=65535)
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_use_tls: bool | None = None
+    smtp_from_address: str | None = None
+    smtp_from_name: str | None = None
+    email_api_key: str | None = None
+    email_api_domain: str | None = None
 
 
 class SettingsOut(BaseModel):
@@ -178,5 +195,47 @@ class SettingsOut(BaseModel):
 class ClientProjectOut(BaseModel):
     title: str
     songs: list[SongOut]
+
+    model_config = {"from_attributes": True}
+
+
+# --- Admin Settings (with email config) ---
+
+class AdminSettingsOut(SettingsOut):
+    email_provider: str = "none"
+    email_notifications_enabled: bool = False
+    email_admin_address: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_use_tls: bool = True
+    smtp_from_address: str | None = None
+    smtp_from_name: str = "Mixnote"
+    smtp_password_set: bool = False
+    email_api_key_set: bool = False
+    email_api_domain: str | None = None
+
+
+# --- Email Template ---
+
+class EmailTemplateCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    subject: str = Field(min_length=1, max_length=500)
+    body_html: str = Field(min_length=1)
+
+
+class EmailTemplateUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    subject: str | None = Field(default=None, min_length=1, max_length=500)
+    body_html: str | None = None
+
+
+class EmailTemplateOut(BaseModel):
+    id: int
+    name: str
+    subject: str
+    body_html: str
+    created_at: datetime
+    updated_at: datetime
 
     model_config = {"from_attributes": True}

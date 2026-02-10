@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_admin
 from ..database import get_db
+from ..email_service import send_comment_notification
 from ..models import AppSettings, Comment, Project, Reply, Song, Version
 from ..schemas import CommentCreate, CommentOut, CommentUpdate, ReplyCreate, ReplyOut
 
@@ -55,6 +56,8 @@ def get_comments(
 def create_comment(
     share_link: str,
     req: CommentCreate,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     project = _validate_share_link(share_link, db)
@@ -78,6 +81,10 @@ def create_comment(
     db.add(comment)
     db.commit()
     db.refresh(comment)
+
+    base_url = str(request.base_url).rstrip("/")
+    background_tasks.add_task(send_comment_notification, comment.id, None, base_url)
+
     return comment
 
 
@@ -86,6 +93,8 @@ def reply_to_comment(
     share_link: str,
     comment_id: int,
     req: ReplyCreate,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     project = _validate_share_link(share_link, db)
@@ -99,6 +108,10 @@ def reply_to_comment(
     db.add(reply)
     db.commit()
     db.refresh(reply)
+
+    base_url = str(request.base_url).rstrip("/")
+    background_tasks.add_task(send_comment_notification, comment.id, reply.id, base_url)
+
     return reply
 
 

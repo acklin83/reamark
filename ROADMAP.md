@@ -13,7 +13,7 @@
 ## V2 — To Do
 
 - [x] Light-Mode Fix (Text- und Hintergrundfarben, Waveform-Farben bei Theme-Wechsel)
-- [ ] Email-Benachrichtigungen bei neuen Kommentaren
+- [x] Email-Benachrichtigungen bei neuen Kommentaren (SMTP/SendGrid/Mailgun, Templates, pro Projekt)
 - [ ] Real-time Updates (WebSocket)
 - [ ] Link-Ablaufdatum (Share Links mit Expiration)
 - [ ] Mobile App

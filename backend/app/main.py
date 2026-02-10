@@ -1,14 +1,87 @@
+import logging
 import os
+import sqlite3
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .database import Base, engine
+from .database import Base, engine, SessionLocal
+from .models import EmailTemplate
 from .routers import admin, comments, projects, settings
 
+logger = logging.getLogger(__name__)
+
+DATA_DIR = os.environ.get("MIXNOTE_DATA_DIR", "/data")
+DB_PATH = os.path.join(DATA_DIR, "database", "mixnote.db")
+
+
+def _migrate_db():
+    """Add new columns to existing tables (idempotent)."""
+    if not os.path.exists(DB_PATH):
+        return
+    conn = sqlite3.connect(DB_PATH)
+    migrations = [
+        "ALTER TABLE app_settings ADD COLUMN email_provider TEXT DEFAULT 'none'",
+        "ALTER TABLE app_settings ADD COLUMN email_notifications_enabled BOOLEAN DEFAULT 0",
+        "ALTER TABLE app_settings ADD COLUMN email_admin_address TEXT",
+        "ALTER TABLE app_settings ADD COLUMN smtp_host TEXT",
+        "ALTER TABLE app_settings ADD COLUMN smtp_port INTEGER DEFAULT 587",
+        "ALTER TABLE app_settings ADD COLUMN smtp_username TEXT",
+        "ALTER TABLE app_settings ADD COLUMN smtp_password TEXT",
+        "ALTER TABLE app_settings ADD COLUMN smtp_use_tls BOOLEAN DEFAULT 1",
+        "ALTER TABLE app_settings ADD COLUMN smtp_from_address TEXT",
+        "ALTER TABLE app_settings ADD COLUMN smtp_from_name TEXT DEFAULT 'Mixnote'",
+        "ALTER TABLE app_settings ADD COLUMN email_api_key TEXT",
+        "ALTER TABLE app_settings ADD COLUMN email_api_domain TEXT",
+        "ALTER TABLE projects ADD COLUMN notification_email TEXT",
+        "ALTER TABLE projects ADD COLUMN email_template_id INTEGER REFERENCES email_templates(id)",
+    ]
+    for sql in migrations:
+        try:
+            conn.execute(sql)
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+    conn.commit()
+    conn.close()
+
+
+def _seed_default_template():
+    """Insert default email template if none exist."""
+    db = SessionLocal()
+    try:
+        if db.query(EmailTemplate).count() == 0:
+            tpl = EmailTemplate(
+                name="Standard-Benachrichtigung",
+                subject="Neuer {{ 'Reply' if is_reply else 'Kommentar' }} – {{ project_title }} / {{ song_title }}",
+                body_html="""<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+  <h2 style="color: #6366f1; margin-bottom: 4px;">{{ project_title }}</h2>
+  <p style="color: #888; margin-top: 0;">{{ song_title }} &middot; v{{ version_number }} {{ version_label }}</p>
+  <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">
+  {% if is_reply %}
+  <p style="color: #888; font-size: 14px;">Antwort auf Kommentar von <strong>{{ parent_comment_author }}</strong>:</p>
+  <div style="border-left: 3px solid #6366f1; padding-left: 12px; margin: 8px 0; color: #666; font-size: 14px;">
+    {{ parent_comment_text }}
+  </div>
+  {% endif %}
+  <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin: 16px 0;">
+    <p style="margin: 0 0 8px 0;"><strong>{{ author_name }}</strong> <span style="color: #888; font-size: 13px;">@ {{ timecode }}</span></p>
+    <p style="margin: 0; font-size: 15px;">{{ comment_text }}</p>
+  </div>
+  <p><a href="{{ share_url }}" style="color: #6366f1; text-decoration: none;">In Mixnote &ouml;ffnen &rarr;</a></p>
+</div>""",
+            )
+            db.add(tpl)
+            db.commit()
+            logger.info("Seeded default email template")
+    finally:
+        db.close()
+
+
+_migrate_db()
 Base.metadata.create_all(bind=engine)
+_seed_default_template()
 
 app = FastAPI(title="Mixnote", version="0.1.0")
 

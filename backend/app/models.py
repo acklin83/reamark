@@ -35,10 +35,13 @@ class Project(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     share_link: Mapped[str] = mapped_column(String(12), unique=True, index=True, default=_short_uuid)
+    notification_email: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
+    email_template_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("email_templates.id", ondelete="SET NULL"), nullable=True, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
 
     songs: Mapped[list["Song"]] = relationship(back_populates="project", cascade="all, delete-orphan", order_by="Song.position")
+    email_template: Mapped["EmailTemplate | None"] = relationship()
 
 
 class Song(Base):
@@ -97,6 +100,17 @@ class Reply(Base):
     comment: Mapped["Comment"] = relationship(back_populates="replies")
 
 
+class EmailTemplate(Base):
+    __tablename__ = "email_templates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    subject: Mapped[str] = mapped_column(String(500), nullable=False)
+    body_html: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
+
+
 class AppSettings(Base):
     __tablename__ = "app_settings"
 
@@ -121,4 +135,17 @@ class AppSettings(Base):
     logo_path: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
     logo_height: Mapped[int] = mapped_column(Integer, default=32)
     clients_can_resolve: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Email settings
+    email_provider: Mapped[str] = mapped_column(String(20), default="none")
+    email_notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    email_admin_address: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
+    smtp_host: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
+    smtp_port: Mapped[int] = mapped_column(Integer, default=587)
+    smtp_username: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
+    smtp_password: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
+    smtp_use_tls: Mapped[bool] = mapped_column(Boolean, default=True)
+    smtp_from_address: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
+    smtp_from_name: Mapped[str] = mapped_column(String(100), default="Mixnote")
+    email_api_key: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
+    email_api_domain: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_now, onupdate=_now)

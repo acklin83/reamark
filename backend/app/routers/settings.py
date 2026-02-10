@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_admin
 from ..database import get_db
 from ..models import AdminUser, AppSettings
-from ..schemas import SettingsOut, SettingsUpdate
+from ..email_service import send_test_email
+from ..schemas import AdminSettingsOut, SettingsOut, SettingsUpdate
 
 router = APIRouter(tags=["settings"])
 
@@ -51,13 +52,50 @@ def _to_settings_out(settings: AppSettings) -> dict:
     }
 
 
+def _to_admin_settings_out(settings: AppSettings) -> dict:
+    base = _to_settings_out(settings)
+    base.update({
+        "email_provider": settings.email_provider or "none",
+        "email_notifications_enabled": settings.email_notifications_enabled or False,
+        "email_admin_address": settings.email_admin_address,
+        "smtp_host": settings.smtp_host,
+        "smtp_port": settings.smtp_port or 587,
+        "smtp_username": settings.smtp_username,
+        "smtp_use_tls": settings.smtp_use_tls if settings.smtp_use_tls is not None else True,
+        "smtp_from_address": settings.smtp_from_address,
+        "smtp_from_name": settings.smtp_from_name or "Mixnote",
+        "smtp_password_set": bool(settings.smtp_password),
+        "email_api_key_set": bool(settings.email_api_key),
+        "email_api_domain": settings.email_api_domain,
+    })
+    return base
+
+
 @router.get("/api/settings", response_model=SettingsOut)
 def get_settings(db: Session = Depends(get_db)):
     settings = _get_or_create_settings(db)
     return _to_settings_out(settings)
 
 
-@router.put("/admin/settings", response_model=SettingsOut)
+@router.get("/admin/settings", response_model=AdminSettingsOut)
+def get_admin_settings(
+    _admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    settings = _get_or_create_settings(db)
+    return _to_admin_settings_out(settings)
+
+
+EMAIL_FIELDS = [
+    "email_provider", "email_notifications_enabled", "email_admin_address",
+    "smtp_host", "smtp_port", "smtp_username", "smtp_use_tls",
+    "smtp_from_address", "smtp_from_name", "email_api_domain",
+]
+# Sensitive fields: only update if non-empty string is sent
+EMAIL_SENSITIVE_FIELDS = ["smtp_password", "email_api_key"]
+
+
+@router.put("/admin/settings", response_model=AdminSettingsOut)
 def update_settings(
     req: SettingsUpdate,
     _admin: AdminUser = Depends(get_current_admin),
@@ -70,13 +108,35 @@ def update_settings(
         "light_accent_color", "light_bg_900", "light_bg_800", "light_bg_700", "light_bg_600",
         "light_text_color", "light_waveform_color", "light_waveform_progress_color",
         "logo_height", "clients_can_resolve",
-    ]:
-        value = getattr(req, field)
+    ] + EMAIL_FIELDS:
+        value = getattr(req, field, None)
         if value is not None:
+            setattr(settings, field, value)
+    # Sensitive fields: only overwrite if a non-empty string is provided
+    for field in EMAIL_SENSITIVE_FIELDS:
+        value = getattr(req, field, None)
+        if value is not None and value.strip():
             setattr(settings, field, value)
     db.commit()
     db.refresh(settings)
-    return _to_settings_out(settings)
+    return _to_admin_settings_out(settings)
+
+
+@router.post("/admin/settings/test-email")
+async def test_email(
+    _admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    settings = _get_or_create_settings(db)
+    to = settings.email_admin_address
+    if not to:
+        raise HTTPException(status_code=400, detail="No admin email address configured")
+    if settings.email_provider == "none":
+        raise HTTPException(status_code=400, detail="No email provider configured")
+    error = await send_test_email(settings, to)
+    if error:
+        raise HTTPException(status_code=500, detail=f"Email failed: {error}")
+    return {"ok": True}
 
 
 @router.post("/admin/settings/logo", response_model=SettingsOut)
