@@ -528,6 +528,7 @@ function applySettings(s) {
   const c = getThemeColors(s);
   let style = document.getElementById('app-settings-style');
   if (!style) { style = document.createElement('style'); style.id = 'app-settings-style'; document.head.appendChild(style); }
+  const isLight = currentTheme === 'light';
   style.textContent = `
     body { background-color: ${c.bg900} !important; color: ${c.text} !important; }
     .bg-dark-900 { background-color: ${c.bg900} !important; }
@@ -545,6 +546,16 @@ function applySettings(s) {
     .hover\\:bg-dark-600:hover { background-color: ${c.bg600} !important; }
     .hover\\:bg-indigo-600:hover { background-color: ${c.accent} !important; filter: brightness(0.85); }
     .focus\\:border-accent:focus { border-color: ${c.accent} !important; }
+    ${isLight ? `
+    .text-gray-200 { color: #1f2937 !important; }
+    .text-gray-300 { color: #374151 !important; }
+    .text-gray-400 { color: #4b5563 !important; }
+    .text-gray-500 { color: #6b7280 !important; }
+    .text-gray-600 { color: #9ca3af !important; }
+    .hover\\:text-white:hover { color: #111827 !important; }
+    .border-dashed { border-color: ${c.bg600} !important; }
+    [style*="background:#2d2d2d"] { background: ${c.bg700} !important; }
+    ` : ''}
   `;
   // Logo
   const logo = $('header-logo');
@@ -662,6 +673,10 @@ $('theme-toggle-btn').addEventListener('click', () => {
   currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
   localStorage.setItem('mixnote_theme', currentTheme);
   if (appSettings) applySettings(appSettings);
+  if (ws && appSettings) {
+    const c = getThemeColors(appSettings);
+    ws.setOptions({ waveColor: c.waveform, progressColor: c.waveformProgress, cursorColor: c.text });
+  }
   updateThemeIcon();
 });
 
