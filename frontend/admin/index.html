@@ -111,7 +111,7 @@
         </div>
       </div>
       <!-- Project Email Settings -->
-      <div class="bg-dark-800 rounded-lg p-4 mb-4">
+      <div id="project-email-settings" class="bg-dark-800 rounded-lg p-4 mb-4 hidden">
         <div class="flex items-center gap-2 mb-3">
           <input id="project-notifications-enabled" type="checkbox" checked class="w-4 h-4 accent-indigo-500">
           <label class="text-sm font-medium">Enable email notifications for this project</label>
@@ -374,7 +374,23 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-3 pt-2">
+          <div class="mt-4 pt-4 border-t border-dark-600">
+            <label class="flex items-center gap-3 mb-3">
+              <input id="email-batch-enabled" type="checkbox" class="w-4 h-4 accent-indigo-500">
+              <span class="text-sm">Batch comments (don't send immediately)</span>
+            </label>
+            <div id="batch-delay-field" class="hidden pl-7">
+              <label class="block text-xs text-gray-500 mb-1">Wait for X minutes after last comment</label>
+              <div class="flex items-center gap-2">
+                <input id="email-batch-delay" type="number" min="1" max="60" value="5"
+                  class="w-20 px-3 py-2 bg-dark-700 border border-dark-600 rounded text-sm focus:border-accent focus:outline-none">
+                <span class="text-xs text-gray-500">minutes</span>
+              </div>
+              <p class="text-xs text-gray-500 mt-1">Admin comments are always ignored (never trigger notifications)</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 pt-4 mt-4 border-t border-dark-600">
             <button id="test-email-btn" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 rounded text-sm transition">Send Test E-Mail</button>
             <span id="test-email-status" class="text-sm"></span>
           </div>

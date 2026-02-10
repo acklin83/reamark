@@ -641,9 +641,18 @@ function populateSettingsUI() {
     // Share from-address/name between SMTP and API fields
     $('api-from-address').value = adminSettings.smtp_from_address || '';
     $('api-from-name').value = adminSettings.smtp_from_name || 'Mixnote';
+    $('email-batch-enabled').checked = adminSettings.email_batch_enabled || false;
+    $('email-batch-delay').value = adminSettings.email_batch_delay_minutes || 5;
   }
   updateProviderFields();
+  updateBatchFields();
 }
+
+function updateBatchFields() {
+  const enabled = $('email-batch-enabled').checked;
+  $('batch-delay-field').classList.toggle('hidden', !enabled);
+}
+$('email-batch-enabled').addEventListener('change', updateBatchFields);
 
 function updateProviderFields() {
   const provider = $('email-provider').value;
@@ -691,6 +700,8 @@ $('save-settings-btn').addEventListener('click', async () => {
     data.smtp_from_address = $('api-from-address').value.trim();
     data.smtp_from_name = $('api-from-name').value.trim() || 'Mixnote';
   }
+  data.email_batch_enabled = $('email-batch-enabled').checked;
+  data.email_batch_delay_minutes = parseInt($('email-batch-delay').value) || 5;
   try {
     adminSettings = await api('/admin/settings', { method: 'PUT', json: data });
     appSettings = adminSettings; // AdminSettingsOut extends SettingsOut
@@ -881,11 +892,21 @@ $('save-project-email-btn').addEventListener('click', async () => {
   } catch (err) { alert(err.message); }
 });
 
-// Hook into openProject to populate email fields
+// Hook into openProject to populate email fields + show/hide section
 const _originalOpenProject = window.openProject;
 window.openProject = async function(id) {
   await _originalOpenProject(id);
-  populateProjectEmailFields();
+  // Load admin settings if not loaded yet
+  if (!adminSettings) {
+    await loadAdminSettings();
+  }
+  // Show email settings only if globally enabled
+  if (adminSettings && adminSettings.email_notifications_enabled) {
+    $('project-email-settings').classList.remove('hidden');
+    populateProjectEmailFields();
+  } else {
+    $('project-email-settings').classList.add('hidden');
+  }
 };
 
 init();

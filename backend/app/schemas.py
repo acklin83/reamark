@@ -167,6 +167,8 @@ class SettingsUpdate(BaseModel):
     smtp_from_name: str | None = None
     email_api_key: str | None = None
     email_api_domain: str | None = None
+    email_batch_enabled: bool | None = None
+    email_batch_delay_minutes: int | None = Field(default=None, ge=1, le=60)
 
 
 class SettingsOut(BaseModel):
@@ -217,6 +219,8 @@ class AdminSettingsOut(SettingsOut):
     smtp_password_set: bool = False
     email_api_key_set: bool = False
     email_api_domain: str | None = None
+    email_batch_enabled: bool = False
+    email_batch_delay_minutes: int = 5
 
 
 # --- Email Template ---

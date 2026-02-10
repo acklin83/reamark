@@ -6,17 +6,21 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate, make_msgid
+from datetime import datetime, timedelta, timezone
 import re
 
 import httpx
 from jinja2 import Environment
 
 from .database import SessionLocal
-from .models import AppSettings, Comment, EmailTemplate, Project, Reply, Song, Version
+from .models import AdminUser, AppSettings, Comment, EmailTemplate, Project, Reply, Song, Version
 
 logger = logging.getLogger(__name__)
 
 jinja_env = Environment(autoescape=True)
+
+# In-memory batch queue: {project_id: {"comments": [(comment_id, reply_id)], "timer": Task}}
+_batch_queue = {}
 
 
 def _html_to_plaintext(html: str) -> str:
@@ -192,8 +196,92 @@ async def send_notification(settings: AppSettings, to: str, subject: str, html_b
     logger.info(f"Email sent to {to}: {subject}")
 
 
+def _is_admin_comment(comment: Comment, reply: Reply | None, db) -> bool:
+    """Check if comment was posted by admin user."""
+    author = reply.author_name if reply else comment.author_name
+    admin = db.query(AdminUser).filter(AdminUser.username == author).first()
+    return admin is not None
+
+
+async def _send_batched_notifications(project_id: str, base_url: str):
+    """Send batched notifications for a project."""
+    global _batch_queue
+
+    if project_id not in _batch_queue:
+        return
+
+    batch = _batch_queue.pop(project_id)
+    comment_list = batch.get("comments", [])
+
+    if not comment_list:
+        return
+
+    db = SessionLocal()
+    try:
+        settings = db.query(AppSettings).first()
+        if not settings or not settings.email_notifications_enabled:
+            return
+        if settings.email_provider == "none":
+            return
+
+        project = db.get(Project, project_id)
+        if not project or not project.notifications_enabled:
+            return
+
+        recipient = _get_recipient_email(project, settings)
+        if not recipient:
+            return
+
+        # Get template
+        template = None
+        if project.email_template_id:
+            template = db.get(EmailTemplate, project.email_template_id)
+        if not template:
+            template = db.query(EmailTemplate).first()
+        if not template:
+            logger.warning("No email template found, skipping batch notification")
+            return
+
+        # Build batched email body
+        comments_html = []
+        for comment_id, reply_id in comment_list:
+            comment = db.get(Comment, comment_id)
+            if not comment:
+                continue
+            reply = db.get(Reply, reply_id) if reply_id else None
+            version = db.get(Version, comment.version_id)
+            song = db.get(Song, version.song_id) if version else None
+
+            if not version or not song:
+                continue
+
+            context = build_notification_context(project, song, version, comment, reply, base_url)
+            _, item_html = render_template(template, context)
+            comments_html.append(item_html)
+
+        if not comments_html:
+            return
+
+        # Send single email with all comments
+        if len(comments_html) == 1:
+            subject = f"New comment – {project.title}"
+            body = comments_html[0]
+        else:
+            subject = f"{len(comments_html)} new comments – {project.title}"
+            body = '<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">'.join(comments_html)
+
+        await send_notification(settings, recipient, subject, body)
+
+    except Exception:
+        logger.exception("Batched email notification failed")
+    finally:
+        db.close()
+
+
 async def send_comment_notification(comment_id: int, reply_id: int | None, base_url: str):
-    """High-level: load settings + template, render, send. Runs as background task."""
+    """High-level: schedule or send notification. Runs as background task."""
+    global _batch_queue
+
     db = SessionLocal()
     try:
         settings = db.query(AppSettings).first()
@@ -207,6 +295,11 @@ async def send_comment_notification(comment_id: int, reply_id: int | None, base_
             return
 
         reply = db.get(Reply, reply_id) if reply_id else None
+
+        # Skip admin comments
+        if _is_admin_comment(comment, reply, db):
+            logger.debug(f"Skipping notification for admin comment {comment_id}")
+            return
 
         version = db.get(Version, comment.version_id)
         if not version:
@@ -228,20 +321,49 @@ async def send_comment_notification(comment_id: int, reply_id: int | None, base_
             logger.debug("No recipient email configured, skipping notification")
             return
 
-        # Get template: project-specific or first available (default)
-        template = None
-        if project.email_template_id:
-            template = db.get(EmailTemplate, project.email_template_id)
-        if not template:
-            template = db.query(EmailTemplate).first()
-        if not template:
-            logger.warning("No email template found, skipping notification")
-            return
+        # Batch mode enabled?
+        if settings.email_batch_enabled and settings.email_batch_delay_minutes > 0:
+            project_id = project.id
 
-        context = build_notification_context(project, song, version, comment, reply, base_url)
-        subject, html_body = render_template(template, context)
-        await send_notification(settings, recipient, subject, html_body)
+            # Cancel existing timer if any
+            if project_id in _batch_queue and "timer" in _batch_queue[project_id]:
+                try:
+                    _batch_queue[project_id]["timer"].cancel()
+                except:
+                    pass
 
+            # Add comment to batch queue
+            if project_id not in _batch_queue:
+                _batch_queue[project_id] = {"comments": [], "timer": None}
+
+            _batch_queue[project_id]["comments"].append((comment_id, reply_id))
+
+            # Schedule batch send
+            delay_seconds = settings.email_batch_delay_minutes * 60
+            timer = asyncio.create_task(asyncio.sleep(delay_seconds))
+            _batch_queue[project_id]["timer"] = timer
+
+            # Wait and send
+            await timer
+            await _send_batched_notifications(project_id, base_url)
+        else:
+            # Send immediately
+            template = None
+            if project.email_template_id:
+                template = db.get(EmailTemplate, project.email_template_id)
+            if not template:
+                template = db.query(EmailTemplate).first()
+            if not template:
+                logger.warning("No email template found, skipping notification")
+                return
+
+            context = build_notification_context(project, song, version, comment, reply, base_url)
+            subject, html_body = render_template(template, context)
+            await send_notification(settings, recipient, subject, html_body)
+
+    except asyncio.CancelledError:
+        # Timer was cancelled, normal behavior
+        pass
     except Exception:
         logger.exception("Email notification failed")
     finally:

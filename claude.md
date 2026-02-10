@@ -521,6 +521,22 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
   - `frontend/admin/index.html` — Checkbox in project email settings, "Save Changes" button moved to bottom
   - `frontend/admin/js/admin.js` — Project list badge, save/load notifications_enabled
 
+### 2026-02-10: Email Batching & Admin Comment Filtering
+- **Changes:**
+  1. **Batch comments**: New `email_batch_enabled` and `email_batch_delay_minutes` settings. When enabled, comments are batched and sent as single email after X minutes of no new comments.
+  2. **Admin comment filter**: Comments from admin users never trigger email notifications (prevents self-notifications).
+  3. **In-memory queue**: Batch queue uses in-memory timer (no DB table needed), cancelled/restarted on new comments.
+  4. **Conditional project email settings**: Project email settings section only shown if email notifications globally enabled.
+  5. **UI**: Batch checkbox + delay field in Settings → Email. Project email section auto-hidden if email disabled.
+- **Files modified:**
+  - `backend/app/models.py` — Added `email_batch_enabled`, `email_batch_delay_minutes` to AppSettings
+  - `backend/app/schemas.py` — Extended AdminSettingsOut, SettingsUpdate with batch fields
+  - `backend/app/main.py` — Migration for batch settings
+  - `backend/app/routers/settings.py` — Save/load batch settings
+  - `backend/app/email_service.py` — Batch logic with in-memory queue, admin comment filter, batched email generation
+  - `frontend/admin/index.html` — Batch checkbox + delay input, project email settings ID
+  - `frontend/admin/js/admin.js` — Batch UI logic, conditional project email section display
+
 ## Development Notes
 - Prefer simple, maintainable solutions over complex frameworks
 - Direct, efficient code - no unnecessary abstractions

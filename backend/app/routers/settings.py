@@ -67,6 +67,8 @@ def _to_admin_settings_out(settings: AppSettings) -> dict:
         "smtp_password_set": bool(settings.smtp_password),
         "email_api_key_set": bool(settings.email_api_key),
         "email_api_domain": settings.email_api_domain,
+        "email_batch_enabled": settings.email_batch_enabled or False,
+        "email_batch_delay_minutes": settings.email_batch_delay_minutes or 5,
     })
     return base
 
@@ -90,6 +92,7 @@ EMAIL_FIELDS = [
     "email_provider", "email_notifications_enabled", "email_admin_address",
     "smtp_host", "smtp_port", "smtp_username", "smtp_use_tls",
     "smtp_from_address", "smtp_from_name", "email_api_domain",
+    "email_batch_enabled", "email_batch_delay_minutes",
 ]
 # Sensitive fields: only update if non-empty string is sent
 EMAIL_SENSITIVE_FIELDS = ["smtp_password", "email_api_key"]

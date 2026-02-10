@@ -38,6 +38,8 @@ def _migrate_db():
         "ALTER TABLE projects ADD COLUMN notification_email TEXT",
         "ALTER TABLE projects ADD COLUMN email_template_id INTEGER REFERENCES email_templates(id)",
         "ALTER TABLE projects ADD COLUMN notifications_enabled BOOLEAN DEFAULT 1",
+        "ALTER TABLE app_settings ADD COLUMN email_batch_enabled BOOLEAN DEFAULT 0",
+        "ALTER TABLE app_settings ADD COLUMN email_batch_delay_minutes INTEGER DEFAULT 5",
     ]
     for sql in migrations:
         try:

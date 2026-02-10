@@ -149,4 +149,6 @@ class AppSettings(Base):
     smtp_from_name: Mapped[str] = mapped_column(String(100), default="Mixnote")
     email_api_key: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
     email_api_domain: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
+    email_batch_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    email_batch_delay_minutes: Mapped[int] = mapped_column(Integer, default=5)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_now, onupdate=_now)
