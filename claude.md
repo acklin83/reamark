@@ -1,4 +1,4 @@
-Never use any agents for this project to save tokens.
+Never use any agents for this project to save tokens - only when user explicitly requests it.
 Be very prudent with token use!
 
 # Mixnote System - Project Documentation
@@ -536,6 +536,14 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
   - `backend/app/email_service.py` — Batch logic with in-memory queue, admin comment filter, batched email generation
   - `frontend/admin/index.html` — Batch checkbox + delay input, project email settings ID
   - `frontend/admin/js/admin.js` — Batch UI logic, conditional project email section display
+
+### 2026-02-10: Template Migration & Batch Email Grouping
+- **Changes:**
+  1. **English template migration**: Auto-adds English template to existing DBs that only have German template (one-time migration on startup)
+  2. **Batch email grouping**: Comments grouped by song in batched emails. Comments within same song directly stacked (minimal spacing), songs separated by divider.
+- **Files modified:**
+  - `backend/app/main.py` — Template migration for existing DBs
+  - `backend/app/email_service.py` — Group comments by song in batch emails
 
 ## Development Notes
 - Prefer simple, maintainable solutions over complex frameworks

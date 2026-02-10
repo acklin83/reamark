@@ -242,8 +242,10 @@ async def _send_batched_notifications(project_id: str, base_url: str):
             logger.warning("No email template found, skipping batch notification")
             return
 
-        # Build batched email body
-        comments_html = []
+        # Build batched email body - group comments by song
+        from collections import defaultdict
+        comments_by_song = defaultdict(list)
+
         for comment_id, reply_id in comment_list:
             comment = db.get(Comment, comment_id)
             if not comment:
@@ -257,18 +259,27 @@ async def _send_batched_notifications(project_id: str, base_url: str):
 
             context = build_notification_context(project, song, version, comment, reply, base_url)
             _, item_html = render_template(template, context)
-            comments_html.append(item_html)
+            comments_by_song[song.id].append((song.title, item_html))
 
-        if not comments_html:
+        if not comments_by_song:
             return
 
-        # Send single email with all comments
-        if len(comments_html) == 1:
+        # Build final email: group comments per song with separator between songs
+        song_sections = []
+        total_comments = sum(len(comments) for comments in comments_by_song.values())
+
+        for song_id, song_comments in comments_by_song.items():
+            # Comments within same song: minimal spacing (direct stack)
+            song_html = ''.join(html for _, html in song_comments)
+            song_sections.append(song_html)
+
+        # Songs separated by larger divider
+        if len(song_sections) == 1:
             subject = f"New comment – {project.title}"
-            body = comments_html[0]
+            body = song_sections[0]
         else:
-            subject = f"{len(comments_html)} new comments – {project.title}"
-            body = '<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">'.join(comments_html)
+            subject = f"{total_comments} new comments – {project.title}"
+            body = '<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">'.join(song_sections)
 
         await send_notification(settings, recipient, subject, body)
 

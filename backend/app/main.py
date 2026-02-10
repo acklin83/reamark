@@ -51,10 +51,40 @@ def _migrate_db():
 
 
 def _seed_default_template():
-    """Insert default email templates if none exist."""
+    """Insert default email templates if none exist. Also adds EN template to existing DBs."""
     db = SessionLocal()
     try:
-        if db.query(EmailTemplate).count() == 0:
+        # Migration: Add English template if only German exists
+        count = db.query(EmailTemplate).count()
+        if count == 1:
+            existing = db.query(EmailTemplate).first()
+            if existing and "Deutsch" in existing.name:
+                tpl_en = EmailTemplate(
+                    name="Standard Notification (English)",
+                    subject="New {{ 'Reply' if is_reply else 'Comment' }} – {{ project_title }} / {{ song_title }}",
+                    body_html="""<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+  <p style="font-size: 16px; font-weight: bold; color: #6366f1; margin: 0 0 4px 0;">{{ project_title }}</p>
+  <p style="color: #888; margin-top: 0; font-size: 14px;">{{ song_title }} &middot; v{{ version_number }} {{ version_label }}</p>
+  <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">
+  {% if is_reply %}
+  <p style="color: #888; font-size: 14px;">Reply to comment by <strong>{{ parent_comment_author }}</strong>:</p>
+  <div style="border-left: 3px solid #6366f1; padding-left: 12px; margin: 8px 0; color: #666; font-size: 14px;">
+    {{ parent_comment_text }}
+  </div>
+  {% endif %}
+  <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin: 16px 0;">
+    <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>{{ author_name }}</strong> <span style="color: #888; font-size: 13px;">@ {{ timecode }}</span></p>
+    <p style="margin: 0; font-size: 15px;">{{ comment_text }}</p>
+  </div>
+  <p style="font-size: 14px;"><a href="{{ share_url }}" style="color: #6366f1; text-decoration: none;">Open in Mixnote &rarr;</a></p>
+</div>""",
+                )
+                db.add(tpl_en)
+                db.commit()
+                logger.info("Added English email template to existing database")
+                return
+
+        if count == 0:
             # German template
             tpl_de = EmailTemplate(
                 name="Standard-Benachrichtigung (Deutsch)",
