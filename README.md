@@ -11,6 +11,7 @@ A self-hosted audio review platform for studios. Clients listen to mix versions 
 - **Favourite Versions** -- Star your preferred version per song (auto-selected on switch)
 - **Done Workflow** -- Mark comments as resolved, filter by status
 - **REAPER Integration** -- ReaImGui script with waveform display, comment management, and calibration
+- **Email Notifications** -- SMTP/SendGrid/Mailgun support with customizable templates
 - **Admin Interface** -- Upload management, project organization, custom theming and logo
 - **Audio Formats** -- WAV, MP3, FLAC
 
@@ -173,6 +174,19 @@ Mixnote comments use timecodes relative to the song start (0:00 = beginning of t
 3. All timecodes now map correctly between Mixnote and REAPER
 
 The offset is saved per song in the REAPER project file.
+
+## Email Notifications
+
+Mixnote can send email notifications when new comments or replies are posted. See **[EMAIL_DELIVERABILITY.md](./EMAIL_DELIVERABILITY.md)** for complete setup instructions and troubleshooting.
+
+**Quick Setup:**
+1. Go to Admin → Settings → Email
+2. Choose provider (SMTP, SendGrid, or Mailgun)
+3. Configure credentials and sender details
+4. **Important:** Set up SPF/DKIM/DMARC DNS records to avoid spam folder (see guide)
+5. Test with "Send Test Email" button
+
+**Recommended:** Use SendGrid or Mailgun for best deliverability. Self-hosted SMTP often ends up in spam without proper DNS configuration.
 
 ## Tech Stack
 

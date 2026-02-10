@@ -1,3 +1,6 @@
+Never use any agents for this project to save tokens.
+Be very prudent with token use!
+
 # Mixnote System - Project Documentation
 
 ## Project Overview
@@ -488,6 +491,20 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
   - `backend/app/routers/comments.py` — BackgroundTasks hooks
   - `frontend/admin/index.html` — email settings UI, template UI, project email fields
   - `frontend/admin/js/admin.js` — email settings logic, template CRUD, project email save
+
+### 2026-02-10: Email Deliverability Improvements
+- **Issue**: Test emails landing in spam folder
+- **Changes:**
+  1. **Plain-text alternative**: All emails now include both HTML and plain-text versions (RFC 2046 compliant)
+  2. **Email headers**: Added Message-ID, Date, Reply-To, X-Mailer headers for better deliverability
+  3. **Reply-To**: Uses admin email for replies (not noreply@)
+  4. **Multipart MIME**: Proper MIME structure (plain-text first, then HTML)
+  5. **SendGrid/Mailgun**: Added plain-text + Reply-To support
+  6. **Documentation**: Created comprehensive EMAIL_DELIVERABILITY.md guide covering DNS setup (SPF/DKIM/DMARC), provider recommendations, and troubleshooting
+- **Files modified:**
+  - `backend/app/email_service.py` — Plain-text conversion, headers, multipart MIME
+  - `EMAIL_DELIVERABILITY.md` — NEW: Complete deliverability setup guide
+  - `README.md` — Email notifications section with link to guide
 
 ## Development Notes
 - Prefer simple, maintainable solutions over complex frameworks

@@ -5,6 +5,8 @@ import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.utils import formatdate, make_msgid
+import re
 
 import httpx
 from jinja2 import Environment
@@ -15,6 +17,17 @@ from .models import AppSettings, Comment, EmailTemplate, Project, Reply, Song, V
 logger = logging.getLogger(__name__)
 
 jinja_env = Environment(autoescape=True)
+
+
+def _html_to_plaintext(html: str) -> str:
+    """Convert HTML email to plain text (simple strip tags approach)."""
+    # Remove HTML tags
+    text = re.sub(r'<[^>]+>', '', html)
+    # Decode common HTML entities
+    text = text.replace('&nbsp;', ' ').replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+    # Collapse multiple whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
 
 
 def _format_time(seconds: float) -> str:
@@ -63,11 +76,30 @@ def _get_recipient_email(project: Project, settings: AppSettings) -> str | None:
 def _send_smtp(settings: AppSettings, to: str, subject: str, html_body: str):
     """Send via SMTP (blocking, run in thread)."""
     from_addr = settings.smtp_from_address or settings.smtp_username
+    from_name = settings.smtp_from_name or "Mixnote"
+
+    # Create multipart message with both HTML and plain-text alternatives
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = f"{settings.smtp_from_name} <{from_addr}>"
+    msg["From"] = f"{from_name} <{from_addr}>"
     msg["To"] = to
-    msg.attach(MIMEText(html_body, "html"))
+    msg["Date"] = formatdate(localtime=True)
+    msg["Message-ID"] = make_msgid(domain=from_addr.split('@')[-1] if '@' in from_addr else 'mixnote.local')
+
+    # Add Reply-To header (important for deliverability)
+    msg["Reply-To"] = settings.email_admin_address or from_addr
+
+    # Anti-spam headers
+    msg["X-Mailer"] = "Mixnote"
+    msg["X-Priority"] = "3"  # Normal priority
+    msg["Importance"] = "Normal"
+
+    # Attach plain-text version first (RFC 2046: simplest format first)
+    plain_text = _html_to_plaintext(html_body)
+    msg.attach(MIMEText(plain_text, "plain", "utf-8"))
+
+    # Attach HTML version
+    msg.attach(MIMEText(html_body, "html", "utf-8"))
 
     try:
         server = smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=60)
@@ -89,6 +121,10 @@ def _send_smtp(settings: AppSettings, to: str, subject: str, html_body: str):
 
 async def _send_sendgrid(settings: AppSettings, to: str, subject: str, html_body: str):
     """Send via SendGrid v3 REST API."""
+    plain_text = _html_to_plaintext(html_body)
+    from_email = settings.smtp_from_address or "noreply@mixnote.app"
+    from_name = settings.smtp_from_name or "Mixnote"
+
     async with httpx.AsyncClient(timeout=60) as client:
         resp = await client.post(
             "https://api.sendgrid.com/v3/mail/send",
@@ -99,11 +135,18 @@ async def _send_sendgrid(settings: AppSettings, to: str, subject: str, html_body
             json={
                 "personalizations": [{"to": [{"email": to}]}],
                 "from": {
-                    "email": settings.smtp_from_address or "noreply@mixnote.app",
-                    "name": settings.smtp_from_name or "Mixnote",
+                    "email": from_email,
+                    "name": from_name,
+                },
+                "reply_to": {
+                    "email": settings.email_admin_address or from_email,
+                    "name": from_name,
                 },
                 "subject": subject,
-                "content": [{"type": "text/html", "value": html_body}],
+                "content": [
+                    {"type": "text/plain", "value": plain_text},
+                    {"type": "text/html", "value": html_body}
+                ],
             },
         )
         if resp.status_code not in (200, 201, 202):
@@ -113,15 +156,21 @@ async def _send_sendgrid(settings: AppSettings, to: str, subject: str, html_body
 async def _send_mailgun(settings: AppSettings, to: str, subject: str, html_body: str):
     """Send via Mailgun REST API."""
     domain = settings.email_api_domain
+    plain_text = _html_to_plaintext(html_body)
+    from_name = settings.smtp_from_name or "Mixnote"
+    from_email = settings.smtp_from_address or f"noreply@{domain}"
+
     async with httpx.AsyncClient(timeout=60) as client:
         resp = await client.post(
             f"https://api.mailgun.net/v3/{domain}/messages",
             auth=("api", settings.email_api_key),
             data={
-                "from": f"{settings.smtp_from_name or 'Mixnote'} <{settings.smtp_from_address or f'noreply@{domain}'}>",
+                "from": f"{from_name} <{from_email}>",
                 "to": [to],
                 "subject": subject,
+                "text": plain_text,
                 "html": html_body,
+                "h:Reply-To": settings.email_admin_address or from_email,
             },
         )
         if resp.status_code != 200:
