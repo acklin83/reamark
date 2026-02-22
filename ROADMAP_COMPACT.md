@@ -77,6 +77,65 @@ CREATE TABLE markers (
 
 ---
 
+## Task 3: VST3 Plugin (DAW-unabhängig)
+
+**Goal:** Mixnote als VST3-Plugin für alle DAWs (Logic Pro, Cubase, Ableton, Pro Tools, Studio One etc.) — selbe Features wie das REAPER Lua Script.
+
+**Tech Stack:** C++17, JUCE 7, CMake, VST3 SDK (über JUCE)
+
+**Features (1:1 vom Lua Script):**
+- Admin-Login (JWT) mit Remember-me
+- Projekt-Browser (Admin: Dropdown, Client: Share-Link)
+- Song/Version-Auswahl mit Favourites
+- Waveform-Anzeige (Peaks vom Backend, Kommentar-Marker, Playhead)
+- Calibration-Offset (pro Song, manuell via DAW-Transport-Position)
+- Kommentar-Erstellung mit Timecode aus DAW-Transport
+- Kommentar-Liste mit Filter (All/Open/Done)
+- Reply, Edit, Delete, Resolve (Admin)
+- Autoplay-Toggle
+- Dark Theme (Mixnote Website Design)
+
+**Einschränkungen vs. Lua Script:**
+- Kein Transport-Seek: VST3 kann DAW-Transport nicht steuern (nur lesen)
+- Klick auf Timecode/Waveform springt nicht automatisch zur Position
+
+**Architektur:**
+```
+vst3/
+├── CMakeLists.txt            # Build-System, JUCE via FetchContent
+└── Source/
+    ├── PluginProcessor.h/cpp  # Audio-Passthrough, Transport-Info, State
+    ├── PluginEditor.h/cpp     # Haupt-UI (Login, Projekt, Layout)
+    ├── MixnoteApi.h/cpp       # Async HTTP-Client (alle Endpoints)
+    ├── MixnoteModels.h        # Datenstrukturen + JSON-Parsing
+    ├── MixnoteTheme.h/cpp     # Farben + Custom LookAndFeel
+    ├── WaveformComponent.h/cpp      # Waveform mit Markern + Playhead
+    └── CommentListComponent.h/cpp   # Kommentar-Cards mit Aktionen
+```
+
+**Build:**
+```bash
+cd vst3 && mkdir build && cd build
+cmake .. && cmake --build . --config Release
+```
+
+**API-Endpoints (identisch zum Lua Script):**
+- `POST /admin/auth/login` — Login
+- `GET /admin/projects` — Admin-Projekte
+- `GET /api/projects/{uuid}` — Projekt laden
+- `GET /api/projects/{uuid}/comments` — Kommentare
+- `POST /api/projects/{uuid}/comments` — Kommentar erstellen
+- `POST /api/projects/{uuid}/comments/{id}/reply` — Antworten
+- `PATCH /api/projects/{uuid}/comments/{id}/resolve` — Lösen
+- `PUT /admin/comments/{id}` — Bearbeiten
+- `DELETE /admin/comments/{id}` — Löschen
+- `PATCH /admin/versions/{id}/favourite` — Favorit
+- `GET /api/versions/{id}/peaks` — Waveform-Peaks
+
+**Files:** `vst3/` (komplett neues Verzeichnis)
+
+---
+
 ## Completed / Cancelled (Archive)
 
 | Task | Status | Notes |
