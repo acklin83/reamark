@@ -537,6 +537,21 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
   - `frontend/admin/index.html` — Batch checkbox + delay input, project email settings ID
   - `frontend/admin/js/admin.js` — Batch UI logic, conditional project email section display
 
+### 2026-02-22: VST3 Universal Binary + Build Fixes
+- **Universal Binary**: Plugin baut jetzt als arm64 + x86_64. Kein Rosetta mehr nötig auf Apple Silicon.
+  - `CMakeLists.txt`: Forced architecture settings mit `FORCE` flag
+- **Font API**: JUCE deprecation warnings behoben
+  - `juce::Font(12.0f)` → `juce::Font(juce::FontOptions(12.0f))`
+  - `getStringWidth()` → `GlyphArrangement` + `getBoundingBox()`
+  - Betroffen: `WaveformComponent.cpp`, `CommentListComponent.cpp`
+- **Unused parameters**: `juce::ignoreUnused()` in `PluginProcessor.cpp`, `WaveformComponent.cpp`, `MixnoteTheme.cpp`, `CommentListComponent.cpp`
+- **Declaration shadowing**: Lambda-Parameter-Konflikte in `PluginEditor.cpp` behoben (`err` → `projectsErr`, `v` → `version`)
+- **Manufacturer**: "Stoersender" (Codes: `Stss`/`Stmx`, war `Mxnt`/`Mxnp`)
+- **Build Format**: Nur noch VST3 (Standalone entfernt)
+- **JUCE Splash Screen**: Aktiviert (`JUCE_DISPLAY_SPLASH_SCREEN=1`) für GPL-Compliance
+- **Docs**: `vst3/docs/BUILD.md`, `vst3/docs/ARCHITECTURE.md`, `vst3/CHANGELOG.md` erstellt
+- **Files modified:** `vst3/CMakeLists.txt`, `vst3/Source/WaveformComponent.cpp`, `vst3/Source/CommentListComponent.cpp`, `vst3/Source/PluginProcessor.cpp`, `vst3/Source/PluginEditor.cpp`, `vst3/Source/MixnoteTheme.cpp`
+
 ### 2026-02-10: Template Migration & Batch Email Grouping
 - **Changes:**
   1. **English template migration**: Auto-adds English template to existing DBs that only have German template (one-time migration on startup)
