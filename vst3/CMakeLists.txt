@@ -4,6 +4,12 @@ project(MixnotePlugin VERSION 1.0.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# macOS: Build universal binary (Apple Silicon + Intel)
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build universal binary")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
+endif()
+
 # Fetch JUCE
 include(FetchContent)
 FetchContent_Declare(
@@ -40,7 +46,7 @@ target_sources(MixnotePlugin PRIVATE
 
 target_compile_definitions(MixnotePlugin PUBLIC
     JUCE_WEB_BROWSER=0
-    JUCE_USE_CURL=1
+    JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
     JUCE_DISPLAY_SPLASH_SCREEN=0
 )
@@ -54,3 +60,16 @@ target_link_libraries(MixnotePlugin
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+# macOS: Apply entitlements for network access
+if(APPLE)
+    set(ENTITLEMENTS_FILE "${CMAKE_CURRENT_SOURCE_DIR}/MixnotePlugin.entitlements")
+
+    foreach(target MixnotePlugin_VST3 MixnotePlugin_Standalone)
+        if(TARGET ${target})
+            set_target_properties(${target} PROPERTIES
+                XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${ENTITLEMENTS_FILE}"
+            )
+        endif()
+    endforeach()
+endif()
