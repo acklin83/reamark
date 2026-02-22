@@ -14,6 +14,7 @@
 
 - [x] Light-Mode Fix (Text- und Hintergrundfarben, Waveform-Farben bei Theme-Wechsel)
 - [x] Email-Benachrichtigungen bei neuen Kommentaren (SMTP/SendGrid/Mailgun, Templates, pro Projekt)
+- [ ] VST3 Plugin (JUCE/C++, selbe Features wie Lua Script — DAW-unabhängig für Logic, Cubase, Ableton etc.)
 - [ ] Real-time Updates (WebSocket)
 - [ ] Link-Ablaufdatum (Share Links mit Expiration)
 - [ ] Mobile App
