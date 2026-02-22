@@ -1,0 +1,202 @@
+# ==============================================================================
+# Mixnote VST3 Plugin - Git Ignore
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# CMake Build Directory
+# ------------------------------------------------------------------------------
+build/
+cmake-build-*/
+out/
+
+# ------------------------------------------------------------------------------
+# Xcode
+# ------------------------------------------------------------------------------
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+*.xcworkspace/*
+!*.xcworkspace/contents.xcworkspacedata
+!*.xcworkspace/xcshareddata/
+
+# Xcode User Data
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad/
+
+# Xcode Derived Data
+DerivedData/
+
+# ------------------------------------------------------------------------------
+# macOS
+# ------------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# ------------------------------------------------------------------------------
+# C++ / Compilation
+# ------------------------------------------------------------------------------
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# ------------------------------------------------------------------------------
+# VST3 Build Artifacts (keep source, ignore builds)
+# ------------------------------------------------------------------------------
+*.vst3
+JuceLibraryCode/
+Builds/
+
+# But keep .vst3 if it's part of distribution
+!dist/*.vst3
+
+# ------------------------------------------------------------------------------
+# IDE / Editors
+# ------------------------------------------------------------------------------
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# CLion
+.idea/
+cmake-build-*/
+
+# Visual Studio
+.vs/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ------------------------------------------------------------------------------
+# JUCE
+# ------------------------------------------------------------------------------
+# JUCE is fetched via CMake FetchContent
+JUCE/
+
+# ------------------------------------------------------------------------------
+# Temporary / Cache Files
+# ------------------------------------------------------------------------------
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
+# Cache
+*.cache
+.cache/
+
+# Logs
+*.log
+
+# ------------------------------------------------------------------------------
+# Documentation Build Artifacts (if using Doxygen, etc.)
+# ------------------------------------------------------------------------------
+docs/html/
+docs/latex/
+docs/xml/
+
+# Keep markdown docs
+!docs/*.md
+
+# ------------------------------------------------------------------------------
+# Package Managers
+# ------------------------------------------------------------------------------
+# Conan
+conan.lock
+conanbuildinfo.*
+conaninfo.txt
+
+# vcpkg
+vcpkg_installed/
+
+# ------------------------------------------------------------------------------
+# Testing
+# ------------------------------------------------------------------------------
+Testing/
+test-results/
+*.test
+
+# Coverage
+*.gcov
+*.gcda
+*.gcno
+coverage/
+
+# ------------------------------------------------------------------------------
+# Backup / Archive
+# ------------------------------------------------------------------------------
+*.bak
+*.backup
+*.old
+*.orig
+*.zip
+*.tar.gz
+*.7z
+
+# ------------------------------------------------------------------------------
+# Environment / Local Config
+# ------------------------------------------------------------------------------
+.env
+.env.local
+config.local.*
+
+# ------------------------------------------------------------------------------
+# Distribution / Release (if applicable)
+# ------------------------------------------------------------------------------
+dist/*.dmg
+dist/*.pkg
+dist/*.exe
+dist/*.zip
+
+# But keep README or docs
+!dist/README.md
+
+# ==============================================================================
+# End of .gitignore
+# ==============================================================================

@@ -140,12 +140,12 @@ void CommentCard::rebuildReplyDisplays() {
         ReplyDisplay rd;
         rd.textLabel = std::make_unique<juce::Label>("", r.text);
         rd.textLabel->setColour(juce::Label::textColourId, Theme::text());
-        rd.textLabel->setFont(juce::Font(13.0f));
+        rd.textLabel->setFont(juce::FontOptions(13.0f));
         addAndMakeVisible(*rd.textLabel);
 
         rd.authorLabel = std::make_unique<juce::Label>("", "  -- " + r.authorName);
         rd.authorLabel->setColour(juce::Label::textColourId, Theme::textMuted());
-        rd.authorLabel->setFont(juce::Font(12.0f));
+        rd.authorLabel->setFont(juce::FontOptions(12.0f));
         addAndMakeVisible(*rd.authorLabel);
 
         replyDisplays.push_back(std::move(rd));
@@ -240,7 +240,7 @@ void CommentCard::resized() {
 
     if (!admin) {
         // Show status text for non-admin
-        auto statusArea = replyRow.removeFromRight(50);
+        juce::ignoreUnused(replyRow);
         // Status rendered in paint() or could add a label
     }
 

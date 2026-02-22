@@ -317,8 +317,8 @@ void MixnoteEditor::doLogin() {
             authorInput.setText(processorRef.authorName);
 
             // Load admin projects
-            api.loadAdminProjects([this](bool ok, const std::vector<AdminProject>& projects, const juce::String& err) {
-                if (ok) {
+            api.loadAdminProjects([this](bool projectsOk, const std::vector<AdminProject>& projects, const juce::String& projectsErr) {
+                if (projectsOk) {
                     adminProjects = projects;
                     projectCombo.clear();
                     for (size_t i = 0; i < projects.size(); ++i)
@@ -335,7 +335,7 @@ void MixnoteEditor::doLogin() {
                         }
                     }
                 } else {
-                    showError(err);
+                    showError(projectsErr);
                 }
             });
 
@@ -531,17 +531,16 @@ void MixnoteEditor::doToggleFavourite() {
     if (!ver || !loggedIn) return;
 
     api.toggleFavourite(ver->id, [this](bool ok, bool isFav, const juce::String& err) {
+        juce::ignoreUnused(err);
         if (ok) {
             auto* song = getSelectedSong();
             if (song) {
-                for (auto& v : const_cast<Song*>(song)->versions)
-                    v.favourite = false;
+                for (auto& version : const_cast<Song*>(song)->versions)
+                    version.favourite = false;
                 if (selectedVersionIdx >= 0 && selectedVersionIdx < static_cast<int>(song->versions.size()))
                     const_cast<Song*>(song)->versions[static_cast<size_t>(selectedVersionIdx)].favourite = isFav;
             }
             updateVersionCombo();
-        } else {
-            showError(err);
         }
     });
 }

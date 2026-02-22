@@ -117,7 +117,7 @@ void WaveformComponent::paint(juce::Graphics& g) {
         auto& hc = comments[static_cast<size_t>(hoveredCommentIdx)];
         float mx = timecodeToX(hc.timecode);
 
-        auto font = juce::Font(12.0f);
+        juce::Font font(juce::FontOptions(12.0f));
         g.setFont(font);
 
         auto tcStr = "@" + formatTimecode(hc.timecode) + "  " + hc.authorName;
@@ -125,7 +125,11 @@ void WaveformComponent::paint(juce::Graphics& g) {
         if (textStr.length() > 60)
             textStr = textStr.substring(0, 57) + "...";
 
-        float tipW = juce::jmax(font.getStringWidthFloat(tcStr), font.getStringWidthFloat(textStr)) + 16.0f;
+        juce::GlyphArrangement ga1, ga2;
+        ga1.addLineOfText(font, tcStr, 0, 0);
+        ga2.addLineOfText(font, textStr, 0, 0);
+        float tipW = juce::jmax(ga1.getBoundingBox(0, -1, true).getWidth(), 
+                                ga2.getBoundingBox(0, -1, true).getWidth()) + 16.0f;
         float tipH = 36.0f;
         float tipX = juce::jlimit(bounds.getX(), bounds.getRight() - tipW, mx - tipW * 0.5f);
         float tipY = bounds.getBottom() + 2.0f;
@@ -170,7 +174,8 @@ void WaveformComponent::mouseMove(const juce::MouseEvent& event) {
     }
 }
 
-void WaveformComponent::mouseExit(const juce::MouseEvent&) {
+void WaveformComponent::mouseExit(const juce::MouseEvent& event) {
+    juce::ignoreUnused(event);
     if (hoveredCommentIdx >= 0) {
         hoveredCommentIdx = -1;
         repaint();

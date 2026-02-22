@@ -48,6 +48,7 @@ void MixnoteLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b
                                                const juce::Colour& backgroundColour,
                                                bool shouldDrawButtonAsHighlighted,
                                                bool shouldDrawButtonAsDown) {
+    juce::ignoreUnused(button);
     auto bounds = button.getLocalBounds().toFloat().reduced(0.5f);
     auto baseColour = backgroundColour;
 
@@ -73,6 +74,7 @@ void MixnoteLookAndFeel::drawTextEditorOutline(juce::Graphics& g, int width, int
 void MixnoteLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height,
                                        bool isButtonDown, int, int, int, int,
                                        juce::ComboBox& box) {
+    juce::ignoreUnused(isButtonDown, box);
     auto bounds = juce::Rectangle<float>(0, 0, (float)width, (float)height);
     g.setColour(Theme::bgInput());
     g.fillRoundedRectangle(bounds, 4.0f);

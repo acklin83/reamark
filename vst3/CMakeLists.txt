@@ -7,13 +7,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # macOS settings
 if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
-    # Universal binary when using Xcode generator, native arch for Makefiles
-    if(CMAKE_GENERATOR STREQUAL "Xcode")
-        set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build universal binary")
-    else()
-        # Detect native architecture to avoid Rosetta builds
-        execute_process(COMMAND uname -m OUTPUT_VARIABLE HOST_ARCH OUTPUT_STRIP_TRAILING_WHITESPACE)
-        set(CMAKE_OSX_ARCHITECTURES "${HOST_ARCH}" CACHE STRING "Build for native architecture")
+    # Force Universal Binary for Apple Silicon + Intel Macs
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build universal binary" FORCE)
+endif()
+
+# Windows settings
+if(WIN32)
+    # Force 64-bit build on Windows to avoid x86 bridge in Reaper
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        message(FATAL_ERROR "32-bit builds are not supported. Please configure with: cmake -B build -A x64")
     endif()
 endif()
 
@@ -29,10 +31,10 @@ FetchContent_MakeAvailable(JUCE)
 
 # Plugin target
 juce_add_plugin(MixnotePlugin
-    COMPANY_NAME            "Mixnote"
-    PLUGIN_MANUFACTURER_CODE Mxnt
-    PLUGIN_CODE              Mxnp
-    FORMATS                  VST3 Standalone
+    COMPANY_NAME            "Stoersender"
+    PLUGIN_MANUFACTURER_CODE Stss
+    PLUGIN_CODE              Stmx
+    FORMATS                  VST3
     PRODUCT_NAME             "Mixnote"
     IS_SYNTH                 FALSE
     NEEDS_MIDI_INPUT         FALSE
@@ -55,7 +57,7 @@ target_compile_definitions(MixnotePlugin PUBLIC
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
-    JUCE_DISPLAY_SPLASH_SCREEN=0
+    JUCE_DISPLAY_SPLASH_SCREEN=1
 )
 
 target_link_libraries(MixnotePlugin

@@ -17,15 +17,25 @@ double MixnoteProcessor::getTailLengthSeconds() const { return 0.0; }
 
 int MixnoteProcessor::getNumPrograms()    { return 1; }
 int MixnoteProcessor::getCurrentProgram() { return 0; }
-void MixnoteProcessor::setCurrentProgram(int) {}
-const juce::String MixnoteProcessor::getProgramName(int) { return {}; }
-void MixnoteProcessor::changeProgramName(int, const juce::String&) {}
+void MixnoteProcessor::setCurrentProgram(int index) {
+    juce::ignoreUnused(index);
+}
+const juce::String MixnoteProcessor::getProgramName(int index) {
+    juce::ignoreUnused(index);
+    return {};
+}
+void MixnoteProcessor::changeProgramName(int index, const juce::String& newName) {
+    juce::ignoreUnused(index, newName);
+}
 
-void MixnoteProcessor::prepareToPlay(double, int) {}
+void MixnoteProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
+    juce::ignoreUnused(sampleRate, samplesPerBlock);
+}
 void MixnoteProcessor::releaseResources() {}
 
 void MixnoteProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer&) {
     // Pass audio through unchanged — this plugin is a comment/review tool, not an effect.
+    juce::ignoreUnused(buffer);
 
     // Read transport info for the UI
     if (auto* playHead = getPlayHead()) {
