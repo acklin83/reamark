@@ -11,6 +11,7 @@ A self-hosted audio review platform for studios. Clients listen to mix versions 
 - **Favourite Versions** -- Star your preferred version per song (auto-selected on switch)
 - **Done Workflow** -- Mark comments as resolved, filter by status
 - **REAPER Integration** -- ReaImGui script with waveform display, comment management, and calibration
+- **VST3 Plugin** -- DAW-independent plugin (JUCE/C++) for Logic, Cubase, Ableton and others with waveform display, comments, and transport sync
 - **Email Notifications** -- SMTP/SendGrid/Mailgun support with customizable templates
 - **Admin Interface** -- Upload management, project organization, custom theming and logo
 - **Audio Formats** -- WAV, MP3, FLAC
@@ -205,6 +206,7 @@ Mixnote can send email notifications when new comments or replies are posted. Se
 | Auth | JWT (admin) + UUID share links (clients) |
 | Audio | ffmpeg + pydub (peak generation) |
 | REAPER | Lua + ReaImGui |
+| VST3 Plugin | JUCE 8 (C++), Universal Binary (arm64+x86_64) |
 | Deployment | Docker + Docker Compose + nginx |
 
 ## Project Structure
@@ -234,6 +236,10 @@ mixnote/
 │   └── nginx.conf
 ├── reaper/
 │   └── mixnote.lua           # REAPER integration script
+├── vst3/                     # VST3 plugin (JUCE/C++)
+│   ├── CMakeLists.txt
+│   ├── Source/               # Plugin source (Processor, Editor, API, Theme, Waveform, Comments)
+│   └── docs/                 # Architecture & build docs
 ├── data/                     # Runtime data (created automatically)
 │   ├── uploads/              # Audio files
 │   ├── database/             # SQLite DB
