@@ -456,9 +456,14 @@
       </div>
       <div id="upload-selected" class="hidden text-sm text-gray-300 mb-4"></div>
       <div id="upload-progress" class="hidden mb-4">
-        <div class="w-full bg-dark-700 rounded-full h-2">
-          <div id="upload-bar" class="bg-accent h-2 rounded-full transition-all" style="width: 0%"></div>
+        <div class="flex justify-between text-xs text-gray-400 mb-1">
+          <span id="upload-progress-label">Uploading…</span>
+          <span id="upload-progress-pct">0%</span>
         </div>
+        <div class="w-full bg-dark-700 rounded-full h-2">
+          <div id="upload-bar" class="bg-accent h-2 rounded-full transition-all duration-200" style="width: 0%"></div>
+        </div>
+        <div id="upload-progress-detail" class="text-xs text-gray-500 mt-1 text-right"></div>
       </div>
       <div class="flex justify-end gap-3">
         <button id="upload-cancel" class="px-4 py-2 text-sm text-gray-400 hover:text-white transition">Cancel</button>

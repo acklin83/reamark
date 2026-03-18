@@ -465,14 +465,42 @@ function selectFile(file) {
 $('upload-confirm').addEventListener('click', async () => {
   if (!uploadFile || !currentSong) return;
   $('upload-confirm').classList.add('hidden'); $('upload-progress').classList.remove('hidden');
+  $('upload-progress-pct').textContent = '0%';
+  $('upload-progress-label').textContent = 'Uploading…';
+  $('upload-progress-detail').textContent = '';
+  $('upload-bar').style.width = '0%';
+
   const fd = new FormData();
   fd.append('file', uploadFile); fd.append('label', $('upload-label').value.trim());
   const vn = $('upload-version').value.trim(); if (vn) fd.append('version_number', vn);
   const xhr = new XMLHttpRequest();
   xhr.open('POST', `${API}/admin/songs/${currentSong.id}/versions`);
   xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-  xhr.upload.addEventListener('progress', (e) => { if (e.lengthComputable) $('upload-bar').style.width = Math.round((e.loaded / e.total) * 100) + '%'; });
-  xhr.addEventListener('load', () => { if (xhr.status === 201) { closeUpload(); openSong(currentSong.id); } else { alert('Upload failed'); $('upload-confirm').classList.remove('hidden'); $('upload-progress').classList.add('hidden'); } });
+
+  const uploadStart = Date.now();
+  xhr.upload.addEventListener('progress', (e) => {
+    if (!e.lengthComputable) return;
+    const pct = Math.round((e.loaded / e.total) * 100);
+    $('upload-bar').style.width = pct + '%';
+    $('upload-progress-pct').textContent = pct + '%';
+    const elapsed = (Date.now() - uploadStart) / 1000;
+    const speedMBs = elapsed > 0 ? (e.loaded / 1024 / 1024) / elapsed : 0;
+    const loadedMB = (e.loaded / 1024 / 1024).toFixed(1);
+    const totalMB  = (e.total  / 1024 / 1024).toFixed(1);
+    const etaSec   = speedMBs > 0 ? Math.max(0, Math.round(((e.total - e.loaded) / 1024 / 1024) / speedMBs)) : '–';
+    $('upload-progress-detail').textContent =
+      `${loadedMB} / ${totalMB} MB  ·  ${speedMBs.toFixed(1)} MB/s  ·  ETA ${etaSec}s`;
+  });
+  xhr.upload.addEventListener('load', () => {
+    $('upload-bar').style.width = '100%';
+    $('upload-progress-pct').textContent = '100%';
+    $('upload-progress-label').textContent = 'Processing…';
+    $('upload-progress-detail').textContent = '';
+  });
+  xhr.addEventListener('load', () => {
+    if (xhr.status === 201) { closeUpload(); openSong(currentSong.id); }
+    else { alert('Upload failed'); $('upload-confirm').classList.remove('hidden'); $('upload-progress').classList.add('hidden'); }
+  });
   xhr.addEventListener('error', () => { alert('Upload failed'); $('upload-confirm').classList.remove('hidden'); $('upload-progress').classList.add('hidden'); });
   xhr.send(fd);
 });
