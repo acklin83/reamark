@@ -35,6 +35,7 @@ class Project(Base):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     share_link: Mapped[str] = mapped_column(String(12), unique=True, index=True, default=_short_uuid)
+    share_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     notification_email: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
     email_template_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("email_templates.id", ondelete="SET NULL"), nullable=True, default=None)
     notifications_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

@@ -6,7 +6,8 @@ let appSettings = null;
 let project = null;
 let currentSong = null;
 let currentVersion = null;
-let ws = null; // wavesurfer
+let audio = null;
+let timeUpdateInterval = null;
 let comments = [];
 let authorStorageKey = 'mixnote_author';
 let currentTheme = localStorage.getItem('mixnote_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
@@ -14,7 +15,11 @@ let currentTheme = localStorage.getItem('mixnote_theme') || (window.matchMedia('
 // --- API ---
 async function api(path) {
   const res = await fetch(path);
-  if (!res.ok) throw new Error('Not found');
+  if (!res.ok) {
+    const err = { status: res.status };
+    try { const body = await res.json(); err.detail = body.detail; } catch {}
+    throw err;
+  }
   return res.json();
 }
 
@@ -45,13 +50,11 @@ function getThemeColors(s) {
       bg900: s.light_bg_900 || '#ffffff', bg800: s.light_bg_800 || '#f9fafb',
       bg700: s.light_bg_700 || '#f3f4f6', bg600: s.light_bg_600 || '#e5e7eb',
       accent: s.light_accent_color || '#4f46e5', text: s.light_text_color || '#111827',
-      waveform: s.light_waveform_color || '#d1d5db', waveformProgress: s.light_waveform_progress_color || '#4f46e5',
     };
   }
   return {
     bg900: s.dark_900, bg800: s.dark_800, bg700: s.dark_700, bg600: s.dark_600,
     accent: s.accent_color, text: s.text_color,
-    waveform: s.waveform_color, waveformProgress: s.waveform_progress_color,
   };
 }
 
@@ -77,6 +80,9 @@ function applySettings(s) {
     .hover\\:bg-dark-600:hover { background-color: ${c.bg600} !important; }
     .hover\\:bg-indigo-600:hover { background-color: ${c.accent} !important; filter: brightness(0.85); }
     .focus\\:border-accent:focus { border-color: ${c.accent} !important; }
+    #seek-bar { accent-color: ${c.accent}; }
+    #seek-bar::-webkit-slider-thumb { background: ${c.accent}; }
+    #seek-bar::-moz-range-thumb { background: ${c.accent}; }
     ${isLight ? `
     .text-gray-200 { color: #1f2937 !important; }
     .text-gray-300 { color: #374151 !important; }
@@ -99,9 +105,13 @@ async function init() {
   await loadAppSettings();
   try {
     project = await api(`/api/projects/${shareLink}`);
-  } catch {
+  } catch (err) {
     $('loading').classList.add('hidden');
-    $('not-found').classList.remove('hidden');
+    if (err && err.status === 403) {
+      $('share-disabled').classList.remove('hidden');
+    } else {
+      $('not-found').classList.remove('hidden');
+    }
     return;
   }
 
@@ -236,8 +246,8 @@ window.playVersion = function(version) {
   // Re-render to highlight active version
   renderVersionsList(currentSong.versions);
 
-  const seekTo = ws ? ws.getCurrentTime() : undefined;
-  const playing = ws ? ws.isPlaying() : false;
+  const seekTo = audio ? audio.currentTime : undefined;
+  const playing = audio ? !audio.paused : false;
   loadAudio(version.id, seekTo, playing);
   loadComments(version.id);
 };
@@ -250,39 +260,91 @@ $('back-to-songs').addEventListener('click', () => {
 });
 
 // ============================================================
-// WAVESURFER
+// HTML5 AUDIO PLAYER
 // ============================================================
 function loadAudio(versionId, seekTo, wasPlaying) {
   destroyPlayer();
-  ws = WaveSurfer.create({
-    container: '#waveform',
-    waveColor: (appSettings ? getThemeColors(appSettings).waveform : '#4b5563'),
-    progressColor: (appSettings ? getThemeColors(appSettings).waveformProgress : '#6366f1'),
-    cursorColor: (appSettings ? getThemeColors(appSettings).text : '#e5e7eb'), cursorWidth: 1, height: window.innerWidth < 768 ? 64 : 128,
-    barWidth: 2, barGap: 1, barRadius: 2, normalize: true,
-  });
-  ws.load(`/api/audio/${versionId}`);
-  ws.on('ready', () => {
-    $('time-duration').textContent = formatTime(ws.getDuration());
-    if (typeof seekTo === 'number' && ws.getDuration() > 0) ws.seekTo(Math.min(seekTo / ws.getDuration(), 1));
-    if (wasPlaying) ws.play();
+  audio = new Audio(`/api/audio/${versionId}`);
+  audio.preload = 'auto';
+
+  audio.addEventListener('loadedmetadata', () => {
+    $('time-duration').textContent = formatTime(audio.duration);
+    if (typeof seekTo === 'number' && audio.duration > 0) {
+      audio.currentTime = Math.min(seekTo, audio.duration);
+    }
+    if (wasPlaying) audio.play();
     renderCommentMarkers();
   });
-  ws.on('audioprocess', updateTime);
-  ws.on('seeking', updateTime);
-  ws.on('play', () => { $('play-icon').classList.add('hidden'); $('pause-icon').classList.remove('hidden'); });
-  ws.on('pause', () => { $('play-icon').classList.remove('hidden'); $('pause-icon').classList.add('hidden'); });
+
+  audio.addEventListener('play', () => {
+    $('play-icon').classList.add('hidden');
+    $('pause-icon').classList.remove('hidden');
+    startTimeUpdates();
+  });
+
+  audio.addEventListener('pause', () => {
+    $('play-icon').classList.remove('hidden');
+    $('pause-icon').classList.add('hidden');
+    stopTimeUpdates();
+  });
+
+  audio.addEventListener('ended', () => {
+    $('play-icon').classList.remove('hidden');
+    $('pause-icon').classList.add('hidden');
+    stopTimeUpdates();
+    updateTime();
+  });
 }
 
-function destroyPlayer() { if (ws) { ws.destroy(); ws = null; } }
+function destroyPlayer() {
+  stopTimeUpdates();
+  if (audio) { audio.pause(); audio.src = ''; audio = null; }
+  $('seek-bar').value = 0;
+}
+
+function startTimeUpdates() {
+  stopTimeUpdates();
+  timeUpdateInterval = setInterval(updateTime, 200);
+}
+
+function stopTimeUpdates() {
+  if (timeUpdateInterval) { clearInterval(timeUpdateInterval); timeUpdateInterval = null; }
+}
+
 function updateTime() {
-  if (!ws) return;
-  $('time-current').textContent = formatTime(ws.getCurrentTime());
-  $('comment-timecode').textContent = '@' + formatTime(ws.getCurrentTime());
+  if (!audio) return;
+  $('time-current').textContent = formatTime(audio.currentTime);
+  $('comment-timecode').textContent = '@' + formatTime(audio.currentTime);
+  if (audio.duration) {
+    $('seek-bar').value = (audio.currentTime / audio.duration) * 100;
+  }
 }
 
-$('play-btn').addEventListener('click', () => { if (ws) ws.playPause(); });
-document.addEventListener('keydown', (e) => { if (e.code === 'Space' && e.target.tagName !== 'INPUT') { e.preventDefault(); if (ws) ws.playPause(); } });
+// Seek bar interaction
+$('seek-bar').addEventListener('input', (e) => {
+  if (!audio || !audio.duration) return;
+  audio.currentTime = (e.target.value / 100) * audio.duration;
+  updateTime();
+});
+
+// Play/Pause
+$('play-btn').addEventListener('click', () => { if (audio) { audio.paused ? audio.play() : audio.pause(); } });
+
+// Skip buttons
+$('skip-back-btn').addEventListener('click', () => {
+  if (audio) { audio.currentTime = Math.max(0, audio.currentTime - 10); updateTime(); }
+});
+$('skip-fwd-btn').addEventListener('click', () => {
+  if (audio && audio.duration) { audio.currentTime = Math.min(audio.duration, audio.currentTime + 10); updateTime(); }
+});
+
+// Spacebar shortcut
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+    e.preventDefault();
+    if (audio) { audio.paused ? audio.play() : audio.pause(); }
+  }
+});
 
 // ============================================================
 // COMMENTS

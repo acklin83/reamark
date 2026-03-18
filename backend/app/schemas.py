@@ -36,6 +36,7 @@ class ProjectSummary(BaseModel):
     id: str
     title: str
     share_link: str
+    share_enabled: bool = True
     song_count: int
     comment_count: int
     notifications_enabled: bool = True
@@ -49,6 +50,7 @@ class ProjectDetail(BaseModel):
     id: str
     title: str
     share_link: str
+    share_enabled: bool = True
     notification_email: str | None = None
     email_template_id: int | None = None
     notifications_enabled: bool = True

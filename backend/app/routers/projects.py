@@ -51,6 +51,8 @@ def get_project_by_link(
     ).filter(Project.share_link == share_link).first()
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
+    if not project.share_enabled:
+        raise HTTPException(status_code=403, detail="Sharing is disabled for this project")
     return {
         "title": project.title,
         "songs": _enrich_songs(project.songs, db),

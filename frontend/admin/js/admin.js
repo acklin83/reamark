@@ -109,12 +109,26 @@ $('new-project-btn').addEventListener('click', () => {
 // ============================================================
 // VIEW 2: PROJECT DETAIL (songs list)
 // ============================================================
+function updateShareToggleBtn(shareEnabled) {
+  const btn = $('toggle-share-btn');
+  if (shareEnabled) {
+    btn.textContent = '🔗 Shared';
+    btn.className = 'text-xs px-2 py-1 rounded transition shrink-0 bg-green-900 text-green-300 hover:bg-red-900 hover:text-red-300';
+    btn.title = 'Click to disable public share link';
+  } else {
+    btn.textContent = '🔒 Disabled';
+    btn.className = 'text-xs px-2 py-1 rounded transition shrink-0 bg-dark-700 text-gray-500 hover:bg-green-900 hover:text-green-300';
+    btn.title = 'Click to enable public share link';
+  }
+}
+
 window.openProject = async function(id) {
   const project = await api(`/admin/projects/${id}`);
   currentProject = project; currentSong = null; currentVersion = null; destroyPlayer();
   hideAllViews(); $('project-view').classList.remove('hidden');
   $('project-title').textContent = project.title;
   $('share-link').textContent = `${window.location.origin}/${project.share_link}`;
+  updateShareToggleBtn(project.share_enabled !== false);
   renderSongsList(project.songs);
 };
 
@@ -142,6 +156,11 @@ $('project-title').addEventListener('click', () => {
 $('copy-link-btn').addEventListener('click', () => {
   navigator.clipboard.writeText($('share-link').textContent);
   $('copy-link-btn').textContent = 'Copied!'; setTimeout(() => $('copy-link-btn').textContent = 'Copy', 1500);
+});
+$('toggle-share-btn').addEventListener('click', async () => {
+  const res = await api(`/admin/projects/${currentProject.id}/share`, { method: 'PATCH' });
+  currentProject.share_enabled = res.share_enabled;
+  updateShareToggleBtn(res.share_enabled);
 });
 $('delete-project-btn').addEventListener('click', async () => {
   if (!confirm('Delete this project and all its songs/versions?')) return;

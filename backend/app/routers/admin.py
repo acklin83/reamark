@@ -85,7 +85,9 @@ def list_projects(
         )
         result.append(ProjectSummary(
             id=p.id, title=p.title, share_link=p.share_link,
+            share_enabled=getattr(p, "share_enabled", True),
             song_count=song_count, comment_count=comment_count,
+            notifications_enabled=p.notifications_enabled,
             created_at=p.created_at, updated_at=p.updated_at,
         ))
     return result
@@ -121,6 +123,7 @@ def get_project(
         "id": project.id,
         "title": project.title,
         "share_link": project.share_link,
+        "share_enabled": project.share_enabled,
         "notification_email": project.notification_email,
         "email_template_id": project.email_template_id,
         "created_at": project.created_at,
@@ -148,6 +151,25 @@ def update_project(
     db.commit()
     db.refresh(project)
     return project
+
+
+@router.patch("/projects/{project_id}/share")
+def toggle_share(
+    project_id: str,
+    _admin: AdminUser = Depends(get_current_admin),
+    db: Session = Depends(get_db),
+):
+    """Enable or disable the public share link for a project."""
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    project.share_enabled = not project.share_enabled
+    db.commit()
+    db.refresh(project)
+    return {
+        "share_enabled": project.share_enabled,
+        "share_link": project.share_link,
+    }
 
 
 @router.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
