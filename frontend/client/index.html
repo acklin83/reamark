@@ -31,6 +31,48 @@
       position: absolute; top: 0; cursor: pointer; opacity: 0.8; z-index: 10;
     }
     .comment-marker:hover { opacity: 1; }
+
+    /* Mobile layout: single column for viewports <600px */
+    @media (max-width: 599px) {
+      /* Header: tighter padding, smaller title */
+      header { padding: 10px 16px !important; }
+      header h1 { font-size: 1rem !important; }
+
+      /* Views: reduce outer padding */
+      #songs-view,
+      #song-view { padding: 12px 12px !important; max-width: 100% !important; }
+
+      /* Song detail grid: force single column */
+      #song-view > div.grid {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+      }
+
+      /* Player area: reduce padding */
+      #player-area .bg-dark-800 { padding: 12px !important; }
+
+      /* Play button controls: wrap cleanly */
+      #player-area .flex.items-center.gap-4 { gap: 10px !important; }
+
+      /* Comment input area: stack submit button below */
+      #comment-input-area .flex.gap-2 {
+        flex-direction: column !important;
+      }
+      #comment-submit { width: 100% !important; }
+
+      /* Comment timecode hint: smaller */
+      #comment-input-area .flex.items-center.gap-2 { flex-wrap: wrap; }
+
+      /* Back button: bigger tap target */
+      #back-to-songs { display: inline-block; padding: 6px 0; font-size: 0.875rem; }
+
+      /* Song title: slightly smaller on mobile */
+      #song-title { font-size: 1.1rem !important; margin-bottom: 12px !important; }
+
+      /* Author name input + comment text: full width already, ensure no overflow */
+      #author-name, #comment-text { font-size: 16px; } /* prevent iOS zoom on focus */
+    }
   </style>
 </head>
 <body class="bg-dark-900 text-gray-200 min-h-screen">
