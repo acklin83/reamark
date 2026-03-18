@@ -394,21 +394,21 @@ function renderComments() {
 }
 
 function renderCommentMarkers() {
-  document.querySelectorAll('.comment-marker').forEach(el => el.remove());
-  if (!ws || !ws.getDuration()) return;
-  const container = document.querySelector('#waveform');
-  const dur = ws.getDuration();
+  const markersEl = $('seek-bar-markers');
+  if (markersEl) markersEl.innerHTML = '';
+  if (!audio || !audio.duration || !markersEl) return;
+  const dur = audio.duration;
   comments.forEach(c => {
     const m = document.createElement('div');
-    m.className = 'comment-marker';
+    m.className = 'comment-marker' + (c.solved ? ' solved' : '');
     m.style.left = ((c.timecode / dur) * 100) + '%';
-    m.title = `@${formatTime(c.timecode)} - ${c.author_name}: ${c.text}`;
+    m.setAttribute('data-tooltip', `@${formatTime(c.timecode)} ${c.author_name}: ${c.text}`);
     m.addEventListener('click', (e) => { e.stopPropagation(); jumpTo(c.timecode); });
-    container.appendChild(m);
+    markersEl.appendChild(m);
   });
 }
 
-window.jumpTo = function(s) { if (ws && ws.getDuration()) ws.seekTo(s / ws.getDuration()); };
+window.jumpTo = function(s) { if (audio && audio.duration) { audio.currentTime = Math.min(s, audio.duration); updateTime(); } };
 
 window.toggleReplyInput = function(commentId) {
   // Close all other reply inputs first
@@ -471,7 +471,7 @@ async function submitComment() {
   if (!author) { $('author-name').focus(); return; }
   if (!text) { $('comment-text').focus(); return; }
   if (!currentVersion) return;
-  const timecode = ws ? ws.getCurrentTime() : 0;
+  const timecode = audio ? audio.currentTime : 0;
   try {
     await postComment({ version_id: currentVersion.id, timecode, author_name: author, text });
     localStorage.setItem(authorStorageKey, author);
@@ -500,10 +500,6 @@ $('theme-toggle-btn').addEventListener('click', () => {
   currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
   localStorage.setItem('mixnote_theme', currentTheme);
   if (appSettings) applySettings(appSettings);
-  if (ws && appSettings) {
-    const c = getThemeColors(appSettings);
-    ws.setOptions({ waveColor: c.waveform, progressColor: c.waveformProgress, cursorColor: c.text });
-  }
   updateThemeIcon();
 });
 
