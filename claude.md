@@ -596,6 +596,13 @@ A ReaImGui-based script for managing ReaMark comments directly from REAPER.
 - **Korrektur (kein Scrub nötig):** Repo-`claude.md` = `CLAUDE.md` (case-insensitive macOS) = die ReaMark-Projektdoku, NICHT die privaten Team-Instructions (die liegen in `~/.claude/CLAUDE.md`, außerhalb des Repos). Kein sensibler Inhalt → bleibt public, kein History-Rewrite. `STUDIO_OS_SPEC.md` (Spec eines anderen Projekts, nicht sensibel) normal via `git rm` entfernt + gitignored.
 - **NOCH OFFEN:** Repo public schalten, erster `v*`-Tag pushen → baut ghcr-Images + VST3.
 
+### 2026-06-20: Rebrand Mixnote -> ReaMark
+- **Grund:** „Mixnote/MixNote" mehrfach belegt (u. a. iOS „Earmarked"-nahe Apps, MixNote-Notiz-Apps) → schlechte SEO/Verwechslung. Name-Recherche → **ReaMark** (passt zu ReaPack/ReaImGui, „remark"-Pun, Domains `.app`/`.audio`/`.fm`/`.io` + GitHub frei, kein bestehendes ReaMark im REAPER-Umfeld).
+- **Umfang:** 496 Treffer / 48 Dateien umbenannt (Backend, Frontend, VST3, ReaPack-Script, Compose, Docs, Workflows). Source-Files: `ReaMarkApi/ReaMarkModels/ReaMarkTheme`, `ReaMarkPlugin.entitlements`, `reaper/reamark.lua`, `REAMARK_V1_SPEC.md`, `ReaMarkStyle.md`. VST3 PRODUCT_NAME/Projekt → ReaMark.
+- **Sicher gehalten (NICHT angefasst):** DB-Dateiname bleibt `mixnote.db` (sonst Live-Datenverlust). Backend liest `REAMARK_SECRET_KEY`/`REAMARK_DATA_DIR` mit **Fallback auf `MIXNOTE_*`** → bestehende `.env`/Live-Instanz brechen nicht. `docker-compose.yml` (self-host) passt weiter `MIXNOTE_SECRET_KEY` durch.
+- **Infra:** GitHub-Repo `mixnote`→`reamark` umbenannt (alter Name 301-Redirect). ghcr-Images werden beim nächsten `v*`-Tag als `reamark-{backend,nginx}`. ReaPack: `ReaMark/ReaMark.lua` im `reaper-scripts`-Repo. **Live-Domain `mix.stoersender.ch` NICHT geändert** (würde Kunden-Share-Links brechen) — bleibt, bis Frank explizit umzieht.
+- **Live-Update für Frank:** `git pull` (Remote-URL ggf. neu) + `docker compose up -d --build`. Daten bleiben (mixnote.db + MIXNOTE_*-Fallback). site_name in der DB bleibt auf altem Wert bis manuell in Admin→Settings geändert.
+
 ## Development Notes
 - Prefer simple, maintainable solutions over complex frameworks
 - Direct, efficient code - no unnecessary abstractions
