@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(MixnotePlugin VERSION 1.0.0 LANGUAGES C CXX)
+project(ReaMarkPlugin VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -30,12 +30,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(JUCE)
 
 # Plugin target
-juce_add_plugin(MixnotePlugin
+juce_add_plugin(ReaMarkPlugin
     COMPANY_NAME            "Stoersender"
     PLUGIN_MANUFACTURER_CODE Stss
     PLUGIN_CODE              Stmx
     FORMATS                  VST3
-    PRODUCT_NAME             "Mixnote"
+    PRODUCT_NAME             "ReaMark"
     IS_SYNTH                 FALSE
     NEEDS_MIDI_INPUT         FALSE
     NEEDS_MIDI_OUTPUT        FALSE
@@ -44,23 +44,23 @@ juce_add_plugin(MixnotePlugin
     COPY_PLUGIN_AFTER_BUILD  FALSE
 )
 
-target_sources(MixnotePlugin PRIVATE
+target_sources(ReaMarkPlugin PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginEditor.cpp
-    Source/MixnoteApi.cpp
+    Source/ReaMarkApi.cpp
     Source/WaveformComponent.cpp
     Source/CommentListComponent.cpp
-    Source/MixnoteTheme.cpp
+    Source/ReaMarkTheme.cpp
 )
 
-target_compile_definitions(MixnotePlugin PUBLIC
+target_compile_definitions(ReaMarkPlugin PUBLIC
     JUCE_WEB_BROWSER=0
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0
     JUCE_DISPLAY_SPLASH_SCREEN=1
 )
 
-target_link_libraries(MixnotePlugin
+target_link_libraries(ReaMarkPlugin
     PRIVATE
         juce::juce_audio_utils
         juce::juce_gui_extra
@@ -72,9 +72,9 @@ target_link_libraries(MixnotePlugin
 
 # macOS: Apply entitlements for network access
 if(APPLE)
-    set(ENTITLEMENTS_FILE "${CMAKE_CURRENT_SOURCE_DIR}/MixnotePlugin.entitlements")
+    set(ENTITLEMENTS_FILE "${CMAKE_CURRENT_SOURCE_DIR}/ReaMarkPlugin.entitlements")
 
-    foreach(target MixnotePlugin_VST3 MixnotePlugin_Standalone)
+    foreach(target ReaMarkPlugin_VST3 ReaMarkPlugin_Standalone)
         if(TARGET ${target})
             set_target_properties(${target} PROPERTIES
                 XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${ENTITLEMENTS_FILE}"

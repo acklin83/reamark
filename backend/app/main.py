@@ -16,7 +16,7 @@ from .routers import admin, comments, projects, settings
 
 logger = logging.getLogger(__name__)
 
-DATA_DIR = os.environ.get("MIXNOTE_DATA_DIR", "/data")
+DATA_DIR = os.environ.get("REAMARK_DATA_DIR") or os.environ.get("MIXNOTE_DATA_DIR", "/data")
 DB_PATH = os.path.join(DATA_DIR, "database", "mixnote.db")
 
 
@@ -35,7 +35,7 @@ def _migrate_db():
         "ALTER TABLE app_settings ADD COLUMN smtp_password TEXT",
         "ALTER TABLE app_settings ADD COLUMN smtp_use_tls BOOLEAN DEFAULT 1",
         "ALTER TABLE app_settings ADD COLUMN smtp_from_address TEXT",
-        "ALTER TABLE app_settings ADD COLUMN smtp_from_name TEXT DEFAULT 'Mixnote'",
+        "ALTER TABLE app_settings ADD COLUMN smtp_from_name TEXT DEFAULT 'ReaMark'",
         "ALTER TABLE app_settings ADD COLUMN email_api_key TEXT",
         "ALTER TABLE app_settings ADD COLUMN email_api_domain TEXT",
         "ALTER TABLE projects ADD COLUMN notification_email TEXT",
@@ -43,7 +43,7 @@ def _migrate_db():
         "ALTER TABLE projects ADD COLUMN notifications_enabled BOOLEAN DEFAULT 1",
         "ALTER TABLE app_settings ADD COLUMN email_batch_enabled BOOLEAN DEFAULT 0",
         "ALTER TABLE app_settings ADD COLUMN email_batch_delay_minutes INTEGER DEFAULT 5",
-        "ALTER TABLE app_settings ADD COLUMN site_name TEXT DEFAULT 'Mixnote'",
+        "ALTER TABLE app_settings ADD COLUMN site_name TEXT DEFAULT 'ReaMark'",
         "ALTER TABLE app_settings ADD COLUMN favicon_path TEXT",
     ]
     for sql in migrations:
@@ -81,7 +81,7 @@ def _seed_default_template():
     <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>{{ author_name }}</strong> <span style="color: #888; font-size: 13px;">@ {{ timecode }}</span></p>
     <p style="margin: 0; font-size: 15px;">{{ comment_text }}</p>
   </div>
-  <p style="font-size: 14px;"><a href="{{ share_url }}" style="color: #6366f1; text-decoration: none;">Open in Mixnote &rarr;</a></p>
+  <p style="font-size: 14px;"><a href="{{ share_url }}" style="color: #6366f1; text-decoration: none;">Open in ReaMark &rarr;</a></p>
 </div>""",
                 )
                 db.add(tpl_en)
@@ -108,7 +108,7 @@ def _seed_default_template():
     <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>{{ author_name }}</strong> <span style="color: #888; font-size: 13px;">@ {{ timecode }}</span></p>
     <p style="margin: 0; font-size: 15px;">{{ comment_text }}</p>
   </div>
-  <p style="font-size: 14px;"><a href="{{ share_url }}" style="color: #6366f1; text-decoration: none;">In Mixnote &ouml;ffnen &rarr;</a></p>
+  <p style="font-size: 14px;"><a href="{{ share_url }}" style="color: #6366f1; text-decoration: none;">In ReaMark &ouml;ffnen &rarr;</a></p>
 </div>""",
             )
             # English template
@@ -129,7 +129,7 @@ def _seed_default_template():
     <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>{{ author_name }}</strong> <span style="color: #888; font-size: 13px;">@ {{ timecode }}</span></p>
     <p style="margin: 0; font-size: 15px;">{{ comment_text }}</p>
   </div>
-  <p style="font-size: 14px;"><a href="{{ share_url }}" style="color: #6366f1; text-decoration: none;">Open in Mixnote &rarr;</a></p>
+  <p style="font-size: 14px;"><a href="{{ share_url }}" style="color: #6366f1; text-decoration: none;">Open in ReaMark &rarr;</a></p>
 </div>""",
             )
             db.add(tpl_de)
@@ -144,7 +144,7 @@ Base.metadata.create_all(bind=engine)
 _migrate_db()
 _seed_default_template()
 
-app = FastAPI(title="Mixnote", version="0.1.0")
+app = FastAPI(title="ReaMark", version="0.1.0")
 
 # Rate limiting (per client IP, respecting X-Forwarded-For behind a proxy)
 app.state.limiter = limiter

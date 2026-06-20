@@ -1,8 +1,8 @@
-#include "MixnoteTheme.h"
+#include "ReaMarkTheme.h"
 
-namespace mixnote {
+namespace reamark {
 
-MixnoteLookAndFeel::MixnoteLookAndFeel() {
+ReaMarkLookAndFeel::ReaMarkLookAndFeel() {
     // Window / general
     setColour(juce::ResizableWindow::backgroundColourId, Theme::bgBody());
 
@@ -44,7 +44,7 @@ MixnoteLookAndFeel::MixnoteLookAndFeel() {
     setColour(juce::ToggleButton::tickDisabledColourId, Theme::textMuted());
 }
 
-void MixnoteLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button,
+void ReaMarkLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button,
                                                const juce::Colour& backgroundColour,
                                                bool shouldDrawButtonAsHighlighted,
                                                bool shouldDrawButtonAsDown) {
@@ -61,7 +61,7 @@ void MixnoteLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b
     g.fillRoundedRectangle(bounds, 4.0f);
 }
 
-void MixnoteLookAndFeel::drawTextEditorOutline(juce::Graphics& g, int width, int height,
+void ReaMarkLookAndFeel::drawTextEditorOutline(juce::Graphics& g, int width, int height,
                                                 juce::TextEditor& editor) {
     auto bounds = juce::Rectangle<float>(0, 0, (float)width, (float)height);
     auto colour = editor.hasKeyboardFocus(true)
@@ -71,7 +71,7 @@ void MixnoteLookAndFeel::drawTextEditorOutline(juce::Graphics& g, int width, int
     g.drawRoundedRectangle(bounds.reduced(0.5f), 4.0f, 1.0f);
 }
 
-void MixnoteLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height,
+void ReaMarkLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height,
                                        bool isButtonDown, int, int, int, int,
                                        juce::ComboBox& box) {
     juce::ignoreUnused(isButtonDown, box);
@@ -91,14 +91,14 @@ void MixnoteLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height,
     g.fillPath(arrow);
 }
 
-void MixnoteLookAndFeel::drawPopupMenuBackground(juce::Graphics& g, int width, int height) {
+void ReaMarkLookAndFeel::drawPopupMenuBackground(juce::Graphics& g, int width, int height) {
     g.setColour(Theme::bgCard());
     g.fillRoundedRectangle(0.0f, 0.0f, (float)width, (float)height, 4.0f);
     g.setColour(Theme::bgBorder());
     g.drawRoundedRectangle(0.5f, 0.5f, (float)width - 1.0f, (float)height - 1.0f, 4.0f, 1.0f);
 }
 
-void MixnoteLookAndFeel::drawPopupMenuItem(juce::Graphics& g, const juce::Rectangle<int>& area,
+void ReaMarkLookAndFeel::drawPopupMenuItem(juce::Graphics& g, const juce::Rectangle<int>& area,
                                             bool isSeparator, bool isActive, bool isHighlighted,
                                             bool isTicked, bool, const juce::String& text,
                                             const juce::String&, const juce::Drawable*,
@@ -124,7 +124,7 @@ void MixnoteLookAndFeel::drawPopupMenuItem(juce::Graphics& g, const juce::Rectan
     }
 }
 
-void MixnoteLookAndFeel::drawScrollbar(juce::Graphics& g, juce::ScrollBar&,
+void ReaMarkLookAndFeel::drawScrollbar(juce::Graphics& g, juce::ScrollBar&,
                                         int x, int y, int width, int height,
                                         bool isScrollbarVertical, int thumbStartPosition,
                                         int thumbSize, bool isMouseOver, bool isMouseDown) {
@@ -142,7 +142,7 @@ void MixnoteLookAndFeel::drawScrollbar(juce::Graphics& g, juce::ScrollBar&,
         g.fillRoundedRectangle((float)thumbStartPosition, (float)y + 1, (float)thumbSize, (float)height - 2, 3.0f);
 }
 
-void MixnoteLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label) {
+void ReaMarkLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label) {
     g.fillAll(label.findColour(juce::Label::backgroundColourId));
 
     auto textArea = juce::BorderSize<int>(label.getBorderSize()).subtractedFrom(label.getLocalBounds());
@@ -153,4 +153,4 @@ void MixnoteLookAndFeel::drawLabel(juce::Graphics& g, juce::Label& label) {
                      label.getMinimumHorizontalScale());
 }
 
-} // namespace mixnote
+} // namespace reamark

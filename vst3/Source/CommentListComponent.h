@@ -1,10 +1,10 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
-#include "MixnoteModels.h"
+#include "ReaMarkModels.h"
 #include <vector>
 #include <functional>
 
-namespace mixnote {
+namespace reamark {
 
 // A single comment card (header, text, replies, action buttons)
 class CommentCard : public juce::Component {
@@ -109,4 +109,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CommentListComponent)
 };
 
-} // namespace mixnote
+} // namespace reamark

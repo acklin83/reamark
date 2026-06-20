@@ -1,10 +1,10 @@
 #include "PluginEditor.h"
 
-using namespace mixnote;
+using namespace reamark;
 
-MixnoteEditor::MixnoteEditor(MixnoteProcessor& p)
+ReaMarkEditor::ReaMarkEditor(ReaMarkProcessor& p)
     : AudioProcessorEditor(p), processorRef(p) {
-    setLookAndFeel(&mixnoteLnf);
+    setLookAndFeel(&reamarkLnf);
     setSize(420, 700);
     setResizable(true, true);
     setResizeLimits(420, 300, 9999, 9999);
@@ -133,7 +133,7 @@ MixnoteEditor::MixnoteEditor(MixnoteProcessor& p)
     startTimerHz(30);
 }
 
-MixnoteEditor::~MixnoteEditor() {
+ReaMarkEditor::~ReaMarkEditor() {
     setLookAndFeel(nullptr);
     stopTimer();
 }
@@ -142,11 +142,11 @@ MixnoteEditor::~MixnoteEditor() {
 // Layout
 // ---------------------------------------------------------------------------
 
-void MixnoteEditor::paint(juce::Graphics& g) {
+void ReaMarkEditor::paint(juce::Graphics& g) {
     g.fillAll(Theme::bgBody());
 }
 
-void MixnoteEditor::resized() {
+void ReaMarkEditor::resized() {
     auto area = getLocalBounds().reduced(12);
     int rowH = 26;
     int spacing = 6;
@@ -286,7 +286,7 @@ void MixnoteEditor::resized() {
 // Login / Logout
 // ---------------------------------------------------------------------------
 
-void MixnoteEditor::doLogin() {
+void ReaMarkEditor::doLogin() {
     auto server = serverInput.getText().trim();
     auto user = userInput.getText().trim();
     auto pass = passInput.getText();
@@ -346,7 +346,7 @@ void MixnoteEditor::doLogin() {
     });
 }
 
-void MixnoteEditor::doLogout() {
+void ReaMarkEditor::doLogout() {
     loggedIn = false;
     api.setJwtToken({});
     currentProject = {};
@@ -367,7 +367,7 @@ void MixnoteEditor::doLogout() {
 // Project loading
 // ---------------------------------------------------------------------------
 
-void MixnoteEditor::loadProject(const juce::String& shareLink) {
+void ReaMarkEditor::loadProject(const juce::String& shareLink) {
     auto code = extractShareCode(shareLink);
     showError({});
 
@@ -405,13 +405,13 @@ void MixnoteEditor::loadProject(const juce::String& shareLink) {
     });
 }
 
-void MixnoteEditor::onProjectSelected() {
+void ReaMarkEditor::onProjectSelected() {
     int idx = projectCombo.getSelectedId() - 1;
     if (idx >= 0 && idx < static_cast<int>(adminProjects.size()))
         loadProject(adminProjects[static_cast<size_t>(idx)].shareLink);
 }
 
-void MixnoteEditor::onSongSelected() {
+void ReaMarkEditor::onSongSelected() {
     selectedSongIdx = songCombo.getSelectedId() - 1;
     auto* song = getSelectedSong();
     if (song) {
@@ -432,7 +432,7 @@ void MixnoteEditor::onSongSelected() {
     loadPeaks();
 }
 
-void MixnoteEditor::onVersionSelected() {
+void ReaMarkEditor::onVersionSelected() {
     selectedVersionIdx = versionCombo.getSelectedId() - 1;
     loadComments();
     loadPeaks();
@@ -443,7 +443,7 @@ void MixnoteEditor::onVersionSelected() {
 // Comments
 // ---------------------------------------------------------------------------
 
-void MixnoteEditor::loadComments() {
+void ReaMarkEditor::loadComments() {
     auto* ver = getSelectedVersion();
     if (!ver || activeShareLink.isEmpty()) {
         comments.clear();
@@ -463,7 +463,7 @@ void MixnoteEditor::loadComments() {
     });
 }
 
-void MixnoteEditor::loadPeaks() {
+void ReaMarkEditor::loadPeaks() {
     auto* ver = getSelectedVersion();
     if (!ver) {
         waveform.setPeaks({}, 0.0);
@@ -480,7 +480,7 @@ void MixnoteEditor::loadPeaks() {
     });
 }
 
-void MixnoteEditor::doCreateComment() {
+void ReaMarkEditor::doCreateComment() {
     auto text = commentInput.getText().trim();
     auto author = authorInput.getText().trim();
     if (text.isEmpty() || author.isEmpty()) return;
@@ -509,7 +509,7 @@ void MixnoteEditor::doCreateComment() {
 // Calibration offset
 // ---------------------------------------------------------------------------
 
-void MixnoteEditor::doSetOffset() {
+void ReaMarkEditor::doSetOffset() {
     auto* song = getSelectedSong();
     if (!song) return;
 
@@ -519,14 +519,14 @@ void MixnoteEditor::doSetOffset() {
     waveform.setOffset(transportPos);
 }
 
-double MixnoteEditor::getCurrentOffset() const {
+double ReaMarkEditor::getCurrentOffset() const {
     auto* song = getSelectedSong();
     if (!song) return 0.0;
     auto it = processorRef.calibrationOffsets.find(song->id);
     return it != processorRef.calibrationOffsets.end() ? it->second : 0.0;
 }
 
-void MixnoteEditor::doToggleFavourite() {
+void ReaMarkEditor::doToggleFavourite() {
     auto* ver = getSelectedVersion();
     if (!ver || !loggedIn) return;
 
@@ -549,7 +549,7 @@ void MixnoteEditor::doToggleFavourite() {
 // UI update helpers
 // ---------------------------------------------------------------------------
 
-void MixnoteEditor::updateSongCombo() {
+void ReaMarkEditor::updateSongCombo() {
     songCombo.clear();
     for (size_t i = 0; i < currentProject.songs.size(); ++i)
         songCombo.addItem(currentProject.songs[i].title, static_cast<int>(i + 1));
@@ -558,7 +558,7 @@ void MixnoteEditor::updateSongCombo() {
         songCombo.setSelectedId(selectedSongIdx + 1, juce::dontSendNotification);
 }
 
-void MixnoteEditor::updateVersionCombo() {
+void ReaMarkEditor::updateVersionCombo() {
     versionCombo.clear();
     auto* song = getSelectedSong();
     if (!song) return;
@@ -585,7 +585,7 @@ void MixnoteEditor::updateVersionCombo() {
     }
 }
 
-void MixnoteEditor::updateOffsetDisplay() {
+void ReaMarkEditor::updateOffsetDisplay() {
     double offset = getCurrentOffset();
     offsetLabel.setText("Offset: " + formatTimecode(offset) + (offset == 0.0 ? "  (!)" : ""),
                         juce::dontSendNotification);
@@ -595,25 +595,25 @@ void MixnoteEditor::updateOffsetDisplay() {
         offsetLabel.setColour(juce::Label::textColourId, Theme::textMuted());
 }
 
-void MixnoteEditor::updateTimecodeDisplay() {
+void ReaMarkEditor::updateTimecodeDisplay() {
     double transportPos = processorRef.getTransportPositionSeconds();
     double offset = getCurrentOffset();
     double relativeTC = juce::jmax(0.0, transportPos - offset);
     timecodeLabel.setText("@" + formatTimecode(relativeTC), juce::dontSendNotification);
 }
 
-void MixnoteEditor::showError(const juce::String& msg) {
+void ReaMarkEditor::showError(const juce::String& msg) {
     errorMsg = msg;
     errorLabel.setText(msg, juce::dontSendNotification);
 }
 
-const Song* MixnoteEditor::getSelectedSong() const {
+const Song* ReaMarkEditor::getSelectedSong() const {
     if (selectedSongIdx >= 0 && selectedSongIdx < static_cast<int>(currentProject.songs.size()))
         return &currentProject.songs[static_cast<size_t>(selectedSongIdx)];
     return nullptr;
 }
 
-const Version* MixnoteEditor::getSelectedVersion() const {
+const Version* ReaMarkEditor::getSelectedVersion() const {
     auto* song = getSelectedSong();
     if (!song) return nullptr;
     if (selectedVersionIdx >= 0 && selectedVersionIdx < static_cast<int>(song->versions.size()))
@@ -625,7 +625,7 @@ const Version* MixnoteEditor::getSelectedVersion() const {
 // Seek — move waveform cursor to a timecode position
 // ---------------------------------------------------------------------------
 
-void MixnoteEditor::seekTo(double relativeTimecode) {
+void ReaMarkEditor::seekTo(double relativeTimecode) {
     double offset = getCurrentOffset();
     manualSeekPos = relativeTimecode + offset;
 
@@ -640,7 +640,7 @@ void MixnoteEditor::seekTo(double relativeTimecode) {
 // Timer — update playhead + timecode display
 // ---------------------------------------------------------------------------
 
-void MixnoteEditor::timerCallback() {
+void ReaMarkEditor::timerCallback() {
     bool playing = processorRef.isTransportPlaying();
     double pos = processorRef.getTransportPositionSeconds();
 
@@ -661,7 +661,7 @@ void MixnoteEditor::timerCallback() {
 // Separator
 // ---------------------------------------------------------------------------
 
-void MixnoteEditor::drawSeparator(juce::Graphics& g, int y) {
+void ReaMarkEditor::drawSeparator(juce::Graphics& g, int y) {
     g.setColour(Theme::bgBorder());
     g.fillRect(12, y, getWidth() - 24, 1);
 }

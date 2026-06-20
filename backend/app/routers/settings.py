@@ -51,7 +51,7 @@ def _to_settings_out(settings: AppSettings) -> dict:
         "light_waveform_progress_color": settings.light_waveform_progress_color or "#4f46e5",
         "logo_url": logo_url,
         "logo_height": settings.logo_height,
-        "site_name": settings.site_name or "Mixnote",
+        "site_name": settings.site_name or "ReaMark",
         "favicon_url": favicon_url,
         "clients_can_resolve": settings.clients_can_resolve,
     }
@@ -68,7 +68,7 @@ def _to_admin_settings_out(settings: AppSettings) -> dict:
         "smtp_username": settings.smtp_username,
         "smtp_use_tls": settings.smtp_use_tls if settings.smtp_use_tls is not None else True,
         "smtp_from_address": settings.smtp_from_address,
-        "smtp_from_name": settings.smtp_from_name or "Mixnote",
+        "smtp_from_name": settings.smtp_from_name or "ReaMark",
         "smtp_password_set": bool(settings.smtp_password),
         "email_api_key_set": bool(settings.email_api_key),
         "email_api_domain": settings.email_api_domain,

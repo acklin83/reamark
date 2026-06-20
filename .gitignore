@@ -7,5 +7,5 @@ data/database/
 data/uploads/
 data/static/
 
-# Spec for a separate project (Studio OS) — not part of Mixnote
+# Spec for a separate project (Studio OS) — not part of ReaMark
 STUDIO_OS_SPEC.md

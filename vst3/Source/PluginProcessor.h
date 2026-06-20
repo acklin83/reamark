@@ -1,10 +1,10 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
 
-class MixnoteProcessor : public juce::AudioProcessor {
+class ReaMarkProcessor : public juce::AudioProcessor {
 public:
-    MixnoteProcessor();
-    ~MixnoteProcessor() override;
+    ReaMarkProcessor();
+    ~ReaMarkProcessor() override;
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
@@ -50,5 +50,5 @@ private:
     std::atomic<bool> transportPlaying { false };
     std::atomic<double> transportBpm { 120.0 };
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MixnoteProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ReaMarkProcessor)
 };

@@ -1,6 +1,6 @@
 # Licensing
 
-Mixnote is licensed under the **GNU Affero General Public License v3.0**
+ReaMark is licensed under the **GNU Affero General Public License v3.0**
 (AGPLv3). The full text is in [`LICENSE`](LICENSE).
 
 ## Why AGPLv3
@@ -11,7 +11,7 @@ distributing the plugin as open source. Licensing the whole project under
 AGPLv3 keeps everything consistent and compliant.
 
 AGPLv3 also fits a self-hosted, network-facing tool: anyone who runs a modified
-Mixnote as a network service must make their modified source available to its
+ReaMark as a network service must make their modified source available to its
 users (AGPLv3 §13). If you self-host the unmodified release, there is nothing
 extra to do.
 
@@ -28,6 +28,6 @@ by the free JUCE license.
 
 ## Commercial / closed-source use
 
-If you want to ship a closed-source product based on Mixnote's plugin, you need
+If you want to ship a closed-source product based on ReaMark's plugin, you need
 a paid JUCE license (see <https://juce.com/get-juce/>). The web application
 itself (backend + frontend) contains no JUCE code.

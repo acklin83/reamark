@@ -29,16 +29,16 @@ jobs:
           if [ -z "$BUNDLE" ]; then echo "No .vst3 bundle found"; exit 1; fi
           echo "Found: $BUNDLE"
           # -y preserves the symlinks inside the macOS bundle
-          ( cd "$(dirname "$BUNDLE")" && zip -r -y "$GITHUB_WORKSPACE/Mixnote-macOS-universal.vst3.zip" "$(basename "$BUNDLE")" )
+          ( cd "$(dirname "$BUNDLE")" && zip -r -y "$GITHUB_WORKSPACE/ReaMark-macOS-universal.vst3.zip" "$(basename "$BUNDLE")" )
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Mixnote-macOS-universal-vst3
-          path: Mixnote-macOS-universal.vst3.zip
+          name: ReaMark-macOS-universal-vst3
+          path: ReaMark-macOS-universal.vst3.zip
 
       - name: Attach to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: Mixnote-macOS-universal.vst3.zip
+          files: ReaMark-macOS-universal.vst3.zip

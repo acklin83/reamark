@@ -2,7 +2,7 @@
 
 ## 🎯 What's Fixed?
 
-This PR resolves critical build and compatibility issues for the Mixnote VST3 plugin on macOS.
+This PR resolves critical build and compatibility issues for the ReaMark VST3 plugin on macOS.
 
 ### Universal Binary Support (Apple Silicon + Intel)
 - ✅ **No more Rosetta/x86 bridge on M1/M2 Macs**
@@ -10,7 +10,7 @@ This PR resolves critical build and compatibility issues for the Mixnote VST3 pl
 - ✅ Forced architecture settings in CMakeLists.txt with `FORCE` flag
 
 ### Plugin Identity Update
-- ✅ **Manufacturer**: Stoersender (was: Mixnote)
+- ✅ **Manufacturer**: Stoersender (was: ReaMark)
 - ✅ **Manufacturer Code**: `Stss` (was: `Mxnt`)
 - ✅ **Plugin Code**: `Stmx` (was: `Mxnp`)
 - ✅ **Format**: VST3 only (removed Standalone)
@@ -42,18 +42,18 @@ This PR resolves critical build and compatibility issues for the Mixnote VST3 pl
 ### Manual Testing Steps
 ```bash
 # 1. Build the plugin
-cd /path/to/mixnote/vst3
+cd /path/to/reamark/vst3
 rm -rf build
 cmake -B build -G Xcode
-open build/MixnotePlugin.xcodeproj
+open build/ReaMarkPlugin.xcodeproj
 # Build in Xcode (⌘B)
 
 # 2. Verify Universal Binary
-lipo -info build/MixnotePlugin_artefacts/Debug/VST3/Mixnote.vst3/Contents/MacOS/Mixnote
-# Expected: "Architectures in the fat file: Mixnote are: x86_64 arm64"
+lipo -info build/ReaMarkPlugin_artefacts/Debug/VST3/ReaMark.vst3/Contents/MacOS/ReaMark
+# Expected: "Architectures in the fat file: ReaMark are: x86_64 arm64"
 
 # 3. Install to system
-cp -r build/MixnotePlugin_artefacts/Debug/VST3/Mixnote.vst3 \
+cp -r build/ReaMarkPlugin_artefacts/Debug/VST3/ReaMark.vst3 \
       ~/Library/Audio/Plug-Ins/VST3/
 
 # 4. Test in Reaper
@@ -75,7 +75,7 @@ cp -r build/MixnotePlugin_artefacts/Debug/VST3/Mixnote.vst3 \
 - ✅ `PluginEditor.cpp` - Lambda shadowing fixes
 - ✅ `WaveformComponent.cpp` - Font API updates
 - ✅ `CommentListComponent.cpp` - Font API updates, unused variable removal
-- ✅ `MixnoteTheme.cpp` - Unused parameter fixes
+- ✅ `ReaMarkTheme.cpp` - Unused parameter fixes
 
 ## 🔍 Code Changes Summary
 
@@ -90,7 +90,7 @@ cp -r build/MixnotePlugin_artefacts/Debug/VST3/Mixnote.vst3 \
 +    # Force Universal Binary for Apple Silicon + Intel Macs
 +    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build universal binary" FORCE)
 
--    COMPANY_NAME            "Mixnote"
+-    COMPANY_NAME            "ReaMark"
 -    PLUGIN_MANUFACTURER_CODE Mxnt
 -    PLUGIN_CODE              Mxnp
 -    FORMATS                  VST3 Standalone
@@ -155,7 +155,7 @@ Fixes:
 After merge:
 1. Tag release: `git tag -a v1.0.0 -m "Initial release with Universal Binary support"`
 2. Build Release version: `cmake --build build --config Release`
-3. Distribute `.vst3` bundle from `build/MixnotePlugin_artefacts/Release/VST3/`
+3. Distribute `.vst3` bundle from `build/ReaMarkPlugin_artefacts/Release/VST3/`
 
 ## 💬 Additional Notes
 

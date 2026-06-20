@@ -1,22 +1,22 @@
-# Run Mixnote from prebuilt images — no source checkout or build needed.
-# You only need this file and a .env with MIXNOTE_SECRET_KEY.
+# Run ReaMark from prebuilt images — no source checkout or build needed.
+# You only need this file and a .env with REAMARK_SECRET_KEY.
 #
-#   curl -O https://raw.githubusercontent.com/acklin83/mixnote/main/docker-compose.ghcr.yml
-#   echo "MIXNOTE_SECRET_KEY=$(openssl rand -hex 32)" > .env
+#   curl -O https://raw.githubusercontent.com/acklin83/reamark/main/docker-compose.ghcr.yml
+#   echo "REAMARK_SECRET_KEY=$(openssl rand -hex 32)" > .env
 #   docker compose -f docker-compose.ghcr.yml up -d
 #
 # Then open http://<host>:8080/admin to set the admin password.
 services:
   backend:
-    image: ghcr.io/acklin83/mixnote-backend:latest
+    image: ghcr.io/acklin83/reamark-backend:latest
     volumes:
       - ./data:/data
     environment:
-      - MIXNOTE_SECRET_KEY=${MIXNOTE_SECRET_KEY:?Set MIXNOTE_SECRET_KEY in .env (openssl rand -hex 32)}
+      - REAMARK_SECRET_KEY=${REAMARK_SECRET_KEY:?Set REAMARK_SECRET_KEY in .env (openssl rand -hex 32)}
     restart: unless-stopped
 
   nginx:
-    image: ghcr.io/acklin83/mixnote-nginx:latest
+    image: ghcr.io/acklin83/reamark-nginx:latest
     ports:
       - "8080:80"
     volumes:

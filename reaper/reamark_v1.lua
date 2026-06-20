@@ -1,6 +1,6 @@
--- Mixnote Comments - REAPER Integration Script
+-- ReaMark Comments - REAPER Integration Script
 -- Requires ReaImGui (install via ReaPack)
--- Connects to Mixnote API for comment management
+-- Connects to ReaMark API for comment management
 --
 -- Usage: Run from REAPER Actions list
 -- Dependencies: ReaImGui, json (bundled below)
@@ -174,7 +174,7 @@ end
 ---------------------------------------------------------------------------
 -- State
 ---------------------------------------------------------------------------
-local ctx = reaper.ImGui_CreateContext('Mixnote Comments')
+local ctx = reaper.ImGui_CreateContext('ReaMark Comments')
 local FONT_SIZE = 14
 
 -- Hash function (DJB2) for generating project keys
@@ -200,14 +200,14 @@ local is_linked = false
 local linked_uuid = ""
 
 -- Persistent state (saved across sessions via ExtState)
-local server_url = reaper.GetExtState("Mixnote", "server_url")
-local author_name = reaper.GetExtState("Mixnote", "author_name")
-local username = reaper.GetExtState("Mixnote", "username")
-local share_link_input = reaper.GetExtState("Mixnote", "last_share_link")
+local server_url = reaper.GetExtState("ReaMark", "server_url")
+local author_name = reaper.GetExtState("ReaMark", "author_name")
+local username = reaper.GetExtState("ReaMark", "username")
+local share_link_input = reaper.GetExtState("ReaMark", "last_share_link")
 
 -- Check for per-project link
 if reaper_project_id then
-  linked_uuid = reaper.GetExtState("Mixnote_Link", reaper_project_id)
+  linked_uuid = reaper.GetExtState("ReaMark_Link", reaper_project_id)
   if linked_uuid ~= "" then
     is_linked = true
     share_link_input = linked_uuid
@@ -219,7 +219,7 @@ if author_name == "" then author_name = "Frank" end
 if username == "" then username = "admin" end
 
 -- Session state
-local password = reaper.GetExtState("Mixnote", "password")
+local password = reaper.GetExtState("ReaMark", "password")
 if password == nil then password = "" end
 local remember_password = (password ~= "")
 local jwt_token = ""
@@ -276,20 +276,20 @@ local function get_current_offset()
 end
 
 local function save_state()
-  reaper.SetExtState("Mixnote", "server_url", server_url, true)
-  reaper.SetExtState("Mixnote", "author_name", author_name, true)
-  reaper.SetExtState("Mixnote", "username", username, true)
-  reaper.SetExtState("Mixnote", "last_share_link", share_link_input, true)
+  reaper.SetExtState("ReaMark", "server_url", server_url, true)
+  reaper.SetExtState("ReaMark", "author_name", author_name, true)
+  reaper.SetExtState("ReaMark", "username", username, true)
+  reaper.SetExtState("ReaMark", "last_share_link", share_link_input, true)
   if remember_password then
-    reaper.SetExtState("Mixnote", "password", password, true)
+    reaper.SetExtState("ReaMark", "password", password, true)
   else
-    reaper.DeleteExtState("Mixnote", "password", true)
+    reaper.DeleteExtState("ReaMark", "password", true)
   end
 end
 
 local function link_project()
   if reaper_project_id and share_link_input ~= "" then
-    reaper.SetExtState("Mixnote_Link", reaper_project_id, share_link_input, true)
+    reaper.SetExtState("ReaMark_Link", reaper_project_id, share_link_input, true)
     linked_uuid = share_link_input
     is_linked = true
   end
@@ -297,7 +297,7 @@ end
 
 local function unlink_project()
   if reaper_project_id then
-    reaper.DeleteExtState("Mixnote_Link", reaper_project_id, true)
+    reaper.DeleteExtState("ReaMark_Link", reaper_project_id, true)
     linked_uuid = ""
     is_linked = false
   end
@@ -335,7 +335,7 @@ local function load_calibration_offsets()
   calibration_offsets = {}
   for _, song in ipairs(songs) do
     local key = tostring(song.id)
-    local rv, saved = reaper.GetProjExtState(0, "Mixnote", "offset_" .. key)
+    local rv, saved = reaper.GetProjExtState(0, "ReaMark", "offset_" .. key)
     if rv > 0 and saved ~= "" then calibration_offsets[key] = tonumber(saved) end
   end
 end
@@ -391,7 +391,7 @@ local function api_load_admin_projects()
     admin_projects = json.decode(resp) or {}
     -- Restore previously selected project from RPP
     if reaper_project_id then
-      local rv, saved_id = reaper.GetProjExtState(0, "Mixnote", "selected_project_id")
+      local rv, saved_id = reaper.GetProjExtState(0, "ReaMark", "selected_project_id")
       if rv > 0 and saved_id ~= "" then
         for i, p in ipairs(admin_projects) do
           if p.share_link == saved_id then
@@ -590,7 +590,7 @@ local function draw_project_section()
           api_load_project()
           -- Save selection in RPP
           if reaper_project_id then
-            reaper.SetProjExtState(0, "Mixnote", "selected_project_id", p.share_link)
+            reaper.SetProjExtState(0, "ReaMark", "selected_project_id", p.share_link)
           end
         end
       end
@@ -698,7 +698,7 @@ local function draw_song_version_section()
     local key = get_offset_key()
     if key ~= "" then
       calibration_offsets[key] = reaper.GetCursorPosition()
-      reaper.SetProjExtState(0, "Mixnote", "offset_" .. key, tostring(calibration_offsets[key]))
+      reaper.SetProjExtState(0, "ReaMark", "offset_" .. key, tostring(calibration_offsets[key]))
     end
   end
   if offset == 0 then
@@ -858,7 +858,7 @@ end
 ---------------------------------------------------------------------------
 local function loop()
   reaper.ImGui_SetNextWindowSize(ctx, 420, 700, reaper.ImGui_Cond_FirstUseEver())
-  local visible, open = reaper.ImGui_Begin(ctx, 'Mixnote Comments', true)
+  local visible, open = reaper.ImGui_Begin(ctx, 'ReaMark Comments', true)
 
   if visible then
     draw_login_section()

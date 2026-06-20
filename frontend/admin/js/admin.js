@@ -48,7 +48,7 @@ async function checkSetupNeeded() {
 function showLogin() { $('login-screen').classList.remove('hidden'); $('dashboard').classList.add('hidden'); checkSetupNeeded(); }
 function showDashboard() {
   $('login-screen').classList.add('hidden'); $('dashboard').classList.remove('hidden');
-  const storedName = localStorage.getItem('mixnote_admin_name');
+  const storedName = localStorage.getItem('reamark_admin_name');
   if (storedName) $('admin-author-name').value = storedName;
   showProjects();
 }
@@ -59,7 +59,7 @@ $('login-form').addEventListener('submit', async (e) => {
     const loginUsername = $('username').value;
     const data = await api(isSetupMode ? '/admin/auth/setup' : '/admin/auth/login',
       { method: 'POST', json: { username: loginUsername, password: $('password').value } });
-    localStorage.setItem('mixnote_admin_name', loginUsername);
+    localStorage.setItem('reamark_admin_name', loginUsername);
     token = data.access_token; localStorage.setItem('token', token);
     $('admin-author-name').value = loginUsername;
     showDashboard();
@@ -376,7 +376,7 @@ window.closeReplyInput = function(commentId) {
 window.submitReply = async function(commentId) {
   const text = document.getElementById(`reply-text-${commentId}`).value.trim();
   if (!text) return;
-  const replyAuthor = localStorage.getItem('mixnote_admin_name') || 'Admin';
+  const replyAuthor = localStorage.getItem('reamark_admin_name') || 'Admin';
   await api(`/api/projects/${currentProject.share_link}/comments/${commentId}/reply`, { method: 'POST', json: { author_name: replyAuthor, text } });
   await loadComments(currentVersion.id);
 };
@@ -577,7 +577,7 @@ function applySettings(s) {
   const logo = $('header-logo');
   const text = $('header-text');
   // Site name + favicon
-  const name = s.site_name || 'Mixnote';
+  const name = s.site_name || 'ReaMark';
   document.title = name + ' Admin';
   text.textContent = name + ' Admin';
   const loginTitle = $('login-title');
@@ -608,7 +608,7 @@ const FIELD_TO_ID = {
 function fieldToInputId(field) { return FIELD_TO_ID[field]; }
 
 // Theme mode
-let currentTheme = localStorage.getItem('mixnote_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+let currentTheme = localStorage.getItem('reamark_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
 
 function populateSettingsUI() {
   if (!appSettings) return;
@@ -633,7 +633,7 @@ function populateSettingsUI() {
     $('logo-size-control').classList.add('hidden');
   }
   // Site name
-  $('site-name').value = appSettings.site_name || 'Mixnote';
+  $('site-name').value = appSettings.site_name || 'ReaMark';
   // Favicon
   if (appSettings.favicon_url) {
     $('favicon-img').src = appSettings.favicon_url + '?t=' + Date.now();
@@ -655,13 +655,13 @@ function populateSettingsUI() {
     $('smtp-password').placeholder = adminSettings.smtp_password_set ? '••••••• (set)' : 'Password';
     $('smtp-tls').checked = adminSettings.smtp_use_tls !== false;
     $('smtp-from-address').value = adminSettings.smtp_from_address || '';
-    $('smtp-from-name').value = adminSettings.smtp_from_name || 'Mixnote';
+    $('smtp-from-name').value = adminSettings.smtp_from_name || 'ReaMark';
     $('email-api-key').value = '';
     $('email-api-key').placeholder = adminSettings.email_api_key_set ? '••••••• (set)' : 'API Key';
     $('email-api-domain').value = adminSettings.email_api_domain || '';
     // Share from-address/name between SMTP and API fields
     $('api-from-address').value = adminSettings.smtp_from_address || '';
-    $('api-from-name').value = adminSettings.smtp_from_name || 'Mixnote';
+    $('api-from-name').value = adminSettings.smtp_from_name || 'ReaMark';
     $('email-batch-enabled').checked = adminSettings.email_batch_enabled || false;
     $('email-batch-delay').value = adminSettings.email_batch_delay_minutes || 5;
   }
@@ -702,7 +702,7 @@ $('save-settings-btn').addEventListener('click', async () => {
   COLOR_FIELDS.forEach(f => { data[f] = $(fieldToInputId(f)).value; });
   LIGHT_COLOR_FIELDS.forEach(f => { data[f] = $(fieldToInputId(f)).value; });
   data.logo_height = parseInt($('logo-size').value);
-  data.site_name = $('site-name').value.trim() || 'Mixnote';
+  data.site_name = $('site-name').value.trim() || 'ReaMark';
   // Email settings
   data.email_notifications_enabled = $('email-enabled').checked;
   data.email_provider = $('email-provider').value;
@@ -715,12 +715,12 @@ $('save-settings-btn').addEventListener('click', async () => {
     if ($('smtp-password').value) data.smtp_password = $('smtp-password').value;
     data.smtp_use_tls = $('smtp-tls').checked;
     data.smtp_from_address = $('smtp-from-address').value.trim();
-    data.smtp_from_name = $('smtp-from-name').value.trim() || 'Mixnote';
+    data.smtp_from_name = $('smtp-from-name').value.trim() || 'ReaMark';
   } else if (provider === 'sendgrid' || provider === 'mailgun') {
     if ($('email-api-key').value) data.email_api_key = $('email-api-key').value;
     if (provider === 'mailgun') data.email_api_domain = $('email-api-domain').value.trim();
     data.smtp_from_address = $('api-from-address').value.trim();
-    data.smtp_from_name = $('api-from-name').value.trim() || 'Mixnote';
+    data.smtp_from_name = $('api-from-name').value.trim() || 'ReaMark';
   }
   data.email_batch_enabled = $('email-batch-enabled').checked;
   data.email_batch_delay_minutes = parseInt($('email-batch-delay').value) || 5;
@@ -796,7 +796,7 @@ function updateThemeIcon() {
 }
 $('theme-toggle-btn').addEventListener('click', () => {
   currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('mixnote_theme', currentTheme);
+  localStorage.setItem('reamark_theme', currentTheme);
   if (appSettings) applySettings(appSettings);
   if (ws && appSettings) {
     const c = getThemeColors(appSettings);

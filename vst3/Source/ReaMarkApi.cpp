@@ -1,6 +1,6 @@
-#include "MixnoteApi.h"
+#include "ReaMarkApi.h"
 
-namespace mixnote {
+namespace reamark {
 
 // Helper to build a JSON object from key-value pairs
 static juce::String makeJsonObject(std::initializer_list<std::pair<juce::String, juce::var>> props) {
@@ -10,13 +10,13 @@ static juce::String makeJsonObject(std::initializer_list<std::pair<juce::String,
     return juce::JSON::toString(juce::var(obj));
 }
 
-MixnoteApi::MixnoteApi() {}
+ReaMarkApi::ReaMarkApi() {}
 
-MixnoteApi::~MixnoteApi() {
+ReaMarkApi::~ReaMarkApi() {
     threadPool.removeAllJobs(true, 5000);
 }
 
-void MixnoteApi::setServerUrl(const juce::String& url) {
+void ReaMarkApi::setServerUrl(const juce::String& url) {
     auto trimmed = url.trim().trimCharactersAtEnd("/");
 
     // Ensure the URL has a protocol prefix
@@ -30,17 +30,17 @@ void MixnoteApi::setServerUrl(const juce::String& url) {
     serverUrl = trimmed;
 }
 
-juce::String MixnoteApi::getServerUrl() const { return serverUrl; }
+juce::String ReaMarkApi::getServerUrl() const { return serverUrl; }
 
-void MixnoteApi::setJwtToken(const juce::String& token) { jwtToken = token; }
-juce::String MixnoteApi::getJwtToken() const { return jwtToken; }
-bool MixnoteApi::isLoggedIn() const { return jwtToken.isNotEmpty(); }
+void ReaMarkApi::setJwtToken(const juce::String& token) { jwtToken = token; }
+juce::String ReaMarkApi::getJwtToken() const { return jwtToken; }
+bool ReaMarkApi::isLoggedIn() const { return jwtToken.isNotEmpty(); }
 
 // ---------------------------------------------------------------------------
 // HTTP helpers
 // ---------------------------------------------------------------------------
 
-MixnoteApi::HttpResponse MixnoteApi::httpRequest(const juce::String& method,
+ReaMarkApi::HttpResponse ReaMarkApi::httpRequest(const juce::String& method,
                                                    const juce::String& endpoint,
                                                    const juce::String& body) {
     HttpResponse result;
@@ -67,23 +67,23 @@ MixnoteApi::HttpResponse MixnoteApi::httpRequest(const juce::String& method,
     return result;
 }
 
-MixnoteApi::HttpResponse MixnoteApi::httpGet(const juce::String& endpoint) {
+ReaMarkApi::HttpResponse ReaMarkApi::httpGet(const juce::String& endpoint) {
     return httpRequest("GET", endpoint);
 }
 
-MixnoteApi::HttpResponse MixnoteApi::httpPost(const juce::String& endpoint, const juce::String& jsonBody) {
+ReaMarkApi::HttpResponse ReaMarkApi::httpPost(const juce::String& endpoint, const juce::String& jsonBody) {
     return httpRequest("POST", endpoint, jsonBody);
 }
 
-MixnoteApi::HttpResponse MixnoteApi::httpPut(const juce::String& endpoint, const juce::String& jsonBody) {
+ReaMarkApi::HttpResponse ReaMarkApi::httpPut(const juce::String& endpoint, const juce::String& jsonBody) {
     return httpRequest("PUT", endpoint, jsonBody);
 }
 
-MixnoteApi::HttpResponse MixnoteApi::httpPatch(const juce::String& endpoint, const juce::String& jsonBody) {
+ReaMarkApi::HttpResponse ReaMarkApi::httpPatch(const juce::String& endpoint, const juce::String& jsonBody) {
     return httpRequest("PATCH", endpoint, jsonBody);
 }
 
-MixnoteApi::HttpResponse MixnoteApi::httpDelete(const juce::String& endpoint) {
+ReaMarkApi::HttpResponse ReaMarkApi::httpDelete(const juce::String& endpoint) {
     return httpRequest("DELETE", endpoint);
 }
 
@@ -91,7 +91,7 @@ MixnoteApi::HttpResponse MixnoteApi::httpDelete(const juce::String& endpoint) {
 // Auth
 // ---------------------------------------------------------------------------
 
-void MixnoteApi::login(const juce::String& username, const juce::String& password, LoginCallback callback) {
+void ReaMarkApi::login(const juce::String& username, const juce::String& password, LoginCallback callback) {
     threadPool.addJob([this, username, password, cb = std::move(callback)]() {
         auto body = makeJsonObject({
             { "username", username },
@@ -119,7 +119,7 @@ void MixnoteApi::login(const juce::String& username, const juce::String& passwor
 // Projects
 // ---------------------------------------------------------------------------
 
-void MixnoteApi::loadProject(const juce::String& shareLink, ProjectCallback callback) {
+void ReaMarkApi::loadProject(const juce::String& shareLink, ProjectCallback callback) {
     threadPool.addJob([this, shareLink, cb = std::move(callback)]() {
         auto resp = httpGet("/api/projects/" + shareLink);
 
@@ -134,7 +134,7 @@ void MixnoteApi::loadProject(const juce::String& shareLink, ProjectCallback call
     });
 }
 
-void MixnoteApi::loadAdminProjects(AdminProjectsCallback callback) {
+void ReaMarkApi::loadAdminProjects(AdminProjectsCallback callback) {
     threadPool.addJob([this, cb = std::move(callback)]() {
         auto resp = httpGet("/admin/projects");
 
@@ -157,7 +157,7 @@ void MixnoteApi::loadAdminProjects(AdminProjectsCallback callback) {
 // Comments
 // ---------------------------------------------------------------------------
 
-void MixnoteApi::loadComments(const juce::String& shareLink, int versionId, CommentsCallback callback) {
+void ReaMarkApi::loadComments(const juce::String& shareLink, int versionId, CommentsCallback callback) {
     threadPool.addJob([this, shareLink, versionId, cb = std::move(callback)]() {
         auto resp = httpGet("/api/projects/" + shareLink + "/comments?version_id=" + juce::String(versionId));
 
@@ -176,7 +176,7 @@ void MixnoteApi::loadComments(const juce::String& shareLink, int versionId, Comm
     });
 }
 
-void MixnoteApi::createComment(const juce::String& shareLink, int versionId, double timecode,
+void ReaMarkApi::createComment(const juce::String& shareLink, int versionId, double timecode,
                                 const juce::String& authorName, const juce::String& text, SimpleCallback callback) {
     threadPool.addJob([this, shareLink, versionId, timecode, authorName, text, cb = std::move(callback)]() {
         auto body = makeJsonObject({
@@ -195,7 +195,7 @@ void MixnoteApi::createComment(const juce::String& shareLink, int versionId, dou
     });
 }
 
-void MixnoteApi::replyToComment(const juce::String& shareLink, int commentId,
+void ReaMarkApi::replyToComment(const juce::String& shareLink, int commentId,
                                  const juce::String& authorName, const juce::String& text, SimpleCallback callback) {
     threadPool.addJob([this, shareLink, commentId, authorName, text, cb = std::move(callback)]() {
         auto body = makeJsonObject({
@@ -212,7 +212,7 @@ void MixnoteApi::replyToComment(const juce::String& shareLink, int commentId,
     });
 }
 
-void MixnoteApi::resolveComment(const juce::String& shareLink, int commentId, SimpleCallback callback) {
+void ReaMarkApi::resolveComment(const juce::String& shareLink, int commentId, SimpleCallback callback) {
     threadPool.addJob([this, shareLink, commentId, cb = std::move(callback)]() {
         auto resp = httpPatch("/api/projects/" + shareLink + "/comments/" + juce::String(commentId) + "/resolve");
 
@@ -223,7 +223,7 @@ void MixnoteApi::resolveComment(const juce::String& shareLink, int commentId, Si
     });
 }
 
-void MixnoteApi::updateComment(int commentId, const juce::String& text, SimpleCallback callback) {
+void ReaMarkApi::updateComment(int commentId, const juce::String& text, SimpleCallback callback) {
     threadPool.addJob([this, commentId, text, cb = std::move(callback)]() {
         auto body = makeJsonObject({
             { "text", text }
@@ -238,7 +238,7 @@ void MixnoteApi::updateComment(int commentId, const juce::String& text, SimpleCa
     });
 }
 
-void MixnoteApi::deleteComment(int commentId, SimpleCallback callback) {
+void ReaMarkApi::deleteComment(int commentId, SimpleCallback callback) {
     threadPool.addJob([this, commentId, cb = std::move(callback)]() {
         auto resp = httpDelete("/admin/comments/" + juce::String(commentId));
 
@@ -253,7 +253,7 @@ void MixnoteApi::deleteComment(int commentId, SimpleCallback callback) {
 // Versions
 // ---------------------------------------------------------------------------
 
-void MixnoteApi::toggleFavourite(int versionId, FavouriteCallback callback) {
+void ReaMarkApi::toggleFavourite(int versionId, FavouriteCallback callback) {
     threadPool.addJob([this, versionId, cb = std::move(callback)]() {
         auto resp = httpPatch("/admin/versions/" + juce::String(versionId) + "/favourite");
 
@@ -272,7 +272,7 @@ void MixnoteApi::toggleFavourite(int versionId, FavouriteCallback callback) {
 // Peaks
 // ---------------------------------------------------------------------------
 
-void MixnoteApi::loadPeaks(int versionId, PeaksCallback callback) {
+void ReaMarkApi::loadPeaks(int versionId, PeaksCallback callback) {
     threadPool.addJob([this, versionId, cb = std::move(callback)]() {
         auto resp = httpGet("/api/versions/" + juce::String(versionId) + "/peaks");
 
@@ -292,4 +292,4 @@ void MixnoteApi::loadPeaks(int versionId, PeaksCallback callback) {
     });
 }
 
-} // namespace mixnote
+} // namespace reamark

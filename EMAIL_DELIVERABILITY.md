@@ -22,7 +22,7 @@ Spam filters evaluate multiple factors:
 ### 1. Use Your Own Domain (mix.stoersender.ch)
 
 **❌ DON'T**: Use gmail.com, yahoo.com, or free email providers as "From" address
-**✅ DO**: Use `noreply@stoersender.ch` or `mixnote@stoersender.ch`
+**✅ DO**: Use `noreply@stoersender.ch` or `reamark@stoersender.ch`
 
 ### 2. Configure SPF Record
 
@@ -87,9 +87,9 @@ If your DiskStation has a static IP, set up reverse DNS (PTR) record to point ba
 
 For SMTP, configure your mail server's return-path to match your domain.
 
-In Mixnote settings, set:
-- **From Address**: `mixnote@stoersender.ch`
-- **From Name**: `Störsender Mixnote`
+In ReaMark settings, set:
+- **From Address**: `reamark@stoersender.ch`
+- **From Name**: `Störsender ReaMark`
 - **Admin Email** (Reply-To): Your real email (e.g., `frank@stoersender.ch`)
 
 ## Recommended SMTP Providers
@@ -110,7 +110,7 @@ In Mixnote settings, set:
   1. Sign up at sendgrid.com
   2. Authenticate your domain (wizard adds DNS records)
   3. Create API key
-  4. Use API key in Mixnote settings
+  4. Use API key in ReaMark settings
 
 ### Option 3: Mailgun (Free Tier: 5,000/month)
 - **Pros**: Generous free tier, good for transactional emails
@@ -119,7 +119,7 @@ In Mixnote settings, set:
   1. Sign up at mailgun.com
   2. Add domain, configure DNS records
   3. Create API key
-  4. Use API key + domain in Mixnote settings
+  4. Use API key + domain in ReaMark settings
 
 ### Option 4: Self-Hosted SMTP (Advanced)
 - **Pros**: Full control, no third-party
@@ -140,7 +140,7 @@ dig TXT default._domainkey.stoersender.ch
 dig TXT _dmarc.stoersender.ch
 ```
 
-### 2. Send Test Email from Mixnote
+### 2. Send Test Email from ReaMark
 1. Go to Admin → Settings → Email
 2. Configure provider + credentials
 3. Click "Test Email"
@@ -201,11 +201,11 @@ _dmarc.stoersender.ch.    TXT    "v=DMARC1; p=quarantine; rua=mailto:frank@stoer
 # DKIM (will be provided by SendGrid/Mailgun after domain verification)
 ```
 
-### Mixnote Email Settings
+### ReaMark Email Settings
 ```
 Provider: SendGrid (or Mailgun)
-From Address: mixnote@stoersender.ch
-From Name: Störsender Mixnote
+From Address: reamark@stoersender.ch
+From Name: Störsender ReaMark
 Admin Email (Reply-To): frank@stoersender.ch (or your real email)
 ```
 
@@ -224,11 +224,11 @@ Admin Email (Reply-To): frank@stoersender.ch (or your real email)
 - Include clear unsubscribe link (optional for transactional emails)
 - Keep HTML simple (inline CSS, avoid complex layouts)
 - Include plain-text version (now automatic)
-- Use branded "From" name (e.g., "Störsender Mixnote")
+- Use branded "From" name (e.g., "Störsender ReaMark")
 - Include company address in footer (builds trust)
 
 ### ❌ DON'T:
-- Use "noreply@" if possible (better: "mixnote@" with Reply-To)
+- Use "noreply@" if possible (better: "reamark@" with Reply-To)
 - Use ALL CAPS in subject lines
 - Include shortened links (bit.ly, etc.) — use full URLs
 - Embed large images (use hosted images with alt text)
@@ -257,4 +257,4 @@ Admin Email (Reply-To): frank@stoersender.ch (or your real email)
 
 ---
 
-**Need help?** Check the [Mixnote documentation](./CLAUDE.md) or contact the developer.
+**Need help?** Check the [ReaMark documentation](./CLAUDE.md) or contact the developer.

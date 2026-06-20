@@ -2,33 +2,33 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_extra/juce_gui_extra.h>
 #include "PluginProcessor.h"
-#include "MixnoteApi.h"
-#include "MixnoteModels.h"
-#include "MixnoteTheme.h"
+#include "ReaMarkApi.h"
+#include "ReaMarkModels.h"
+#include "ReaMarkTheme.h"
 #include "WaveformComponent.h"
 #include "CommentListComponent.h"
 
-class MixnoteEditor : public juce::AudioProcessorEditor,
+class ReaMarkEditor : public juce::AudioProcessorEditor,
                       private juce::Timer {
 public:
-    explicit MixnoteEditor(MixnoteProcessor& processor);
-    ~MixnoteEditor() override;
+    explicit ReaMarkEditor(ReaMarkProcessor& processor);
+    ~ReaMarkEditor() override;
 
     void paint(juce::Graphics& g) override;
     void resized() override;
 
 private:
-    MixnoteProcessor& processorRef;
-    mixnote::MixnoteApi api;
-    mixnote::MixnoteLookAndFeel mixnoteLnf;
+    ReaMarkProcessor& processorRef;
+    reamark::ReaMarkApi api;
+    reamark::ReaMarkLookAndFeel reamarkLnf;
 
     // --- State ---
     bool loggedIn = false;
     juce::String errorMsg;
 
-    mixnote::Project currentProject;
-    std::vector<mixnote::AdminProject> adminProjects;
-    std::vector<mixnote::Comment> comments;
+    reamark::Project currentProject;
+    std::vector<reamark::AdminProject> adminProjects;
+    std::vector<reamark::Comment> comments;
     juce::String activeShareLink;
 
     int selectedSongIdx = -1;
@@ -60,7 +60,7 @@ private:
     juce::ToggleButton autoplayCheck { "Autoplay" };
 
     // --- Waveform ---
-    mixnote::WaveformComponent waveform;
+    reamark::WaveformComponent waveform;
 
     // --- New comment ---
     juce::TextEditor authorInput;
@@ -69,7 +69,7 @@ private:
     juce::TextButton addCommentBtn { "Add" };
 
     // --- Comment list ---
-    mixnote::CommentListComponent commentList;
+    reamark::CommentListComponent commentList;
 
     // --- Error bar ---
     juce::Label errorLabel;
@@ -101,8 +101,8 @@ private:
     void showError(const juce::String& msg);
     double getCurrentOffset() const;
 
-    const mixnote::Song* getSelectedSong() const;
-    const mixnote::Version* getSelectedVersion() const;
+    const reamark::Song* getSelectedSong() const;
+    const reamark::Version* getSelectedVersion() const;
 
     // Seek: stores clicked timecode (absolute) when transport is stopped
     double manualSeekPos = -1.0;
@@ -112,5 +112,5 @@ private:
     // Timer for playhead updates
     void timerCallback() override;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MixnoteEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ReaMarkEditor)
 };

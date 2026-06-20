@@ -1,7 +1,7 @@
 #include "CommentListComponent.h"
-#include "MixnoteTheme.h"
+#include "ReaMarkTheme.h"
 
-namespace mixnote {
+namespace reamark {
 
 // ===========================================================================
 // CommentCard
@@ -391,4 +391,4 @@ void CommentListComponent::resized() {
     layoutCards();
 }
 
-} // namespace mixnote
+} // namespace reamark

@@ -135,7 +135,7 @@ class AppSettings(Base):
     light_waveform_progress_color: Mapped[str] = mapped_column(String(7), default="#4f46e5")
     logo_path: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
     logo_height: Mapped[int] = mapped_column(Integer, default=32)
-    site_name: Mapped[str] = mapped_column(String(100), default="Mixnote")
+    site_name: Mapped[str] = mapped_column(String(100), default="ReaMark")
     favicon_path: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
     clients_can_resolve: Mapped[bool] = mapped_column(Boolean, default=False)
     # Email settings
@@ -148,7 +148,7 @@ class AppSettings(Base):
     smtp_password: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
     smtp_use_tls: Mapped[bool] = mapped_column(Boolean, default=True)
     smtp_from_address: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
-    smtp_from_name: Mapped[str] = mapped_column(String(100), default="Mixnote")
+    smtp_from_name: Mapped[str] = mapped_column(String(100), default="ReaMark")
     email_api_key: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
     email_api_domain: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
     email_batch_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
