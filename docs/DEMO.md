@@ -26,6 +26,7 @@ curl -O https://raw.githubusercontent.com/acklin83/reamark/main/docker-compose.d
 curl -O https://raw.githubusercontent.com/acklin83/reamark/main/scripts/demo-reset.sh
 chmod +x demo-reset.sh
 echo "REAMARK_SECRET_KEY=$(openssl rand -hex 32)" > .env.demo
+mkdir -p data-demo/uploads   # Synology does not auto-create bind-mount dirs
 docker compose -f docker-compose.demo.yml --env-file .env.demo up -d
 ```
 

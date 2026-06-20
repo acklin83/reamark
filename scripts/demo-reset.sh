@@ -15,6 +15,8 @@ COMPOSE="docker compose -f docker-compose.demo.yml"
 
 $COMPOSE down
 rm -rf data-demo
+# Synology/Container Manager does not auto-create bind-mount dirs — recreate it.
+mkdir -p data-demo/uploads
 $COMPOSE up -d
 
 echo "ReaMark demo reset at $(date) — fresh empty instance is up."
