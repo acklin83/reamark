@@ -2,6 +2,20 @@
 
 A self-hosted audio review platform for studios. Clients listen to mix versions and leave timeline-based comments via secure share links.
 
+## Screenshots
+
+**Clients leave timecoded comments right on the waveform — reply, and mark them done as you fix them.**
+
+![Timeline comments on the waveform](docs/screenshots/Comments-Timeline.png)
+
+**The same comments show up inside REAPER (ReaImGui script) — jump to the spot, reply, resolve, without leaving your session.**
+
+![ReaMark comments inside REAPER](docs/screenshots/Lua-in-Reaper.png)
+
+**Admin view — projects and songs at a glance.**
+
+![Admin project overview](docs/screenshots/Project-Overview.png)
+
 ## Features
 
 - **Projects & Songs** -- Organize mixes by project with multiple songs and auto-incrementing versions (v1, v2, v3...)
