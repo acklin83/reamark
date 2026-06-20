@@ -1,7 +1,7 @@
 #include "WaveformComponent.h"
-#include "MixnoteTheme.h"
+#include "ReaMarkTheme.h"
 
-namespace mixnote {
+namespace reamark {
 
 WaveformComponent::WaveformComponent() {
     setMouseCursor(juce::MouseCursor::PointingHandCursor);
@@ -182,4 +182,4 @@ void WaveformComponent::mouseExit(const juce::MouseEvent& event) {
     }
 }
 
-} // namespace mixnote
+} // namespace reamark

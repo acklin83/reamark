@@ -191,7 +191,7 @@ class SettingsOut(BaseModel):
     light_waveform_progress_color: str
     logo_url: str | None = None
     logo_height: int = 32
-    site_name: str = "Mixnote"
+    site_name: str = "ReaMark"
     favicon_url: str | None = None
     clients_can_resolve: bool = False
 
@@ -218,7 +218,7 @@ class AdminSettingsOut(SettingsOut):
     smtp_username: str | None = None
     smtp_use_tls: bool = True
     smtp_from_address: str | None = None
-    smtp_from_name: str = "Mixnote"
+    smtp_from_name: str = "ReaMark"
     smtp_password_set: bool = False
     email_api_key_set: bool = False
     email_api_domain: str | None = None

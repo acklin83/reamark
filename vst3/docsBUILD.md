@@ -1,4 +1,4 @@
-# Building Mixnote VST3
+# Building ReaMark VST3
 
 ## macOS (Apple Silicon + Intel)
 
@@ -11,7 +11,7 @@
 
 ```bash
 # Navigate to project directory
-cd /path/to/mixnote/vst3
+cd /path/to/reamark/vst3
 
 # Clean previous builds (optional but recommended)
 rm -rf build
@@ -20,13 +20,13 @@ rm -rf build
 cmake -B build -G Xcode
 
 # Open in Xcode
-open build/MixnotePlugin.xcodeproj
+open build/ReaMarkPlugin.xcodeproj
 ```
 
 ### Building in Xcode
 
 1. **Select Build Scheme**
-   - Top left: Choose `MixnotePlugin_VST3` from scheme dropdown
+   - Top left: Choose `ReaMarkPlugin_VST3` from scheme dropdown
 
 2. **Choose Build Configuration**
    - Debug: For development with debugging symbols
@@ -40,12 +40,12 @@ open build/MixnotePlugin.xcodeproj
 
 **Debug Build:**
 ```
-build/MixnotePlugin_artefacts/Debug/VST3/Mixnote.vst3
+build/ReaMarkPlugin_artefacts/Debug/VST3/ReaMark.vst3
 ```
 
 **Release Build:**
 ```
-build/MixnotePlugin_artefacts/Release/VST3/Mixnote.vst3
+build/ReaMarkPlugin_artefacts/Release/VST3/ReaMark.vst3
 ```
 
 ### Installation
@@ -53,11 +53,11 @@ build/MixnotePlugin_artefacts/Release/VST3/Mixnote.vst3
 #### System-wide Installation
 ```bash
 # Install Release build to system VST3 folder
-cp -r build/MixnotePlugin_artefacts/Release/VST3/Mixnote.vst3 \
+cp -r build/ReaMarkPlugin_artefacts/Release/VST3/ReaMark.vst3 \
       ~/Library/Audio/Plug-Ins/VST3/
 
 # Or Debug build for testing
-cp -r build/MixnotePlugin_artefacts/Debug/VST3/Mixnote.vst3 \
+cp -r build/ReaMarkPlugin_artefacts/Debug/VST3/ReaMark.vst3 \
       ~/Library/Audio/Plug-Ins/VST3/
 ```
 
@@ -65,17 +65,17 @@ cp -r build/MixnotePlugin_artefacts/Debug/VST3/Mixnote.vst3 \
 Alternatively, add the build directory to your DAW's VST3 search paths:
 - **Reaper**: Preferences → Plug-ins → VST → Add:
   ```
-  /Users/[username]/Documents/dev/mixnote/vst3/build/MixnotePlugin_artefacts/Debug/VST3
+  /Users/[username]/Documents/dev/reamark/vst3/build/ReaMarkPlugin_artefacts/Debug/VST3
   ```
 
 ### Verify Installation
 
 ```bash
 # Check if plugin is Universal Binary (arm64 + x86_64)
-lipo -info ~/Library/Audio/Plug-Ins/VST3/Mixnote.vst3/Contents/MacOS/Mixnote
+lipo -info ~/Library/Audio/Plug-Ins/VST3/ReaMark.vst3/Contents/MacOS/ReaMark
 
 # Expected output:
-# Architectures in the fat file: Mixnote are: x86_64 arm64
+# Architectures in the fat file: ReaMark are: x86_64 arm64
 ```
 
 ### Troubleshooting

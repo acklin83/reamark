@@ -1,10 +1,10 @@
-# Mixnote - Development Roadmap
+# ReaMark - Development Roadmap
 
 ---
 
-## Task 1: REAPER Waveform-Player mit Mixnote-Audio (PRIORITY)
+## Task 1: REAPER Waveform-Player mit ReaMark-Audio (PRIORITY)
 
-**Goal:** Waveform des aktuell geladenen Mixnote-Songs direkt im Lua Script anzeigen — mit Playhead-Steuerung und Kommentar-Markern.
+**Goal:** Waveform des aktuell geladenen ReaMark-Songs direkt im Lua Script anzeigen — mit Playhead-Steuerung und Kommentar-Markern.
 
 **Ansatz:** Peak-Daten werden serverseitig vorberechnet und als JSON-Endpoint bereitgestellt. Das Lua Script lädt die Peaks und rendert sie mit ImGui Draw-Primitives.
 
@@ -28,7 +28,7 @@
 
 **Files:**
 - Backend: `routers/projects.py` oder `routers/comments.py` (neuer Endpoint), `utils/audio.py` (Peak-Berechnung)
-- Lua: `reaper/mixnote_v2.lua` (Waveform-Rendering + Interaktion)
+- Lua: `reaper/reamark_v2.lua` (Waveform-Rendering + Interaktion)
 
 ---
 
@@ -79,7 +79,7 @@ CREATE TABLE markers (
 
 ## Task 3: VST3 Plugin (DAW-unabhängig)
 
-**Goal:** Mixnote als VST3-Plugin für alle DAWs (Logic Pro, Cubase, Ableton, Pro Tools, Studio One etc.) — selbe Features wie das REAPER Lua Script.
+**Goal:** ReaMark als VST3-Plugin für alle DAWs (Logic Pro, Cubase, Ableton, Pro Tools, Studio One etc.) — selbe Features wie das REAPER Lua Script.
 
 **Tech Stack:** C++17, JUCE 7, CMake, VST3 SDK (über JUCE)
 
@@ -93,7 +93,7 @@ CREATE TABLE markers (
 - Kommentar-Liste mit Filter (All/Open/Done)
 - Reply, Edit, Delete, Resolve (Admin)
 - Autoplay-Toggle
-- Dark Theme (Mixnote Website Design)
+- Dark Theme (ReaMark Website Design)
 
 **Einschränkungen vs. Lua Script:**
 - Kein Transport-Seek: VST3 kann DAW-Transport nicht steuern (nur lesen)
@@ -106,9 +106,9 @@ vst3/
 └── Source/
     ├── PluginProcessor.h/cpp  # Audio-Passthrough, Transport-Info, State
     ├── PluginEditor.h/cpp     # Haupt-UI (Login, Projekt, Layout)
-    ├── MixnoteApi.h/cpp       # Async HTTP-Client (alle Endpoints)
-    ├── MixnoteModels.h        # Datenstrukturen + JSON-Parsing
-    ├── MixnoteTheme.h/cpp     # Farben + Custom LookAndFeel
+    ├── ReaMarkApi.h/cpp       # Async HTTP-Client (alle Endpoints)
+    ├── ReaMarkModels.h        # Datenstrukturen + JSON-Parsing
+    ├── ReaMarkTheme.h/cpp     # Farben + Custom LookAndFeel
     ├── WaveformComponent.h/cpp      # Waveform mit Markern + Playhead
     └── CommentListComponent.h/cpp   # Kommentar-Cards mit Aktionen
 ```

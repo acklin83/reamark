@@ -2,7 +2,7 @@
 #include <juce_core/juce_core.h>
 #include <vector>
 
-namespace mixnote {
+namespace reamark {
 
 struct Reply {
     int id = 0;
@@ -137,4 +137,4 @@ inline juce::String extractShareCode(const juce::String& input) {
     return input;
 }
 
-} // namespace mixnote
+} // namespace reamark

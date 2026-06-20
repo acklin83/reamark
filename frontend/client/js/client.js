@@ -8,8 +8,8 @@ let currentSong = null;
 let currentVersion = null;
 let ws = null; // wavesurfer
 let comments = [];
-let authorStorageKey = 'mixnote_author';
-let currentTheme = localStorage.getItem('mixnote_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+let authorStorageKey = 'reamark_author';
+let currentTheme = localStorage.getItem('reamark_theme') || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
 
 // --- API ---
 async function api(path) {
@@ -93,7 +93,7 @@ function applySettings(s) {
     $('header-logo').classList.remove('hidden');
   }
   // Site name + favicon
-  const name = s.site_name || 'Mixnote';
+  const name = s.site_name || 'ReaMark';
   document.title = name;
   if (s.favicon_url) {
     const fav = document.getElementById('favicon');
@@ -117,8 +117,8 @@ async function init() {
   $('project-title').textContent = project.title;
 
   // Restore author name (per-project, with fallback to global)
-  authorStorageKey = `mixnote_author_${shareLink}`;
-  const saved = localStorage.getItem(authorStorageKey) || localStorage.getItem('mixnote_author');
+  authorStorageKey = `reamark_author_${shareLink}`;
+  const saved = localStorage.getItem(authorStorageKey) || localStorage.getItem('reamark_author');
   if (saved) {
     $('author-name').value = saved;
   } else {
@@ -443,7 +443,7 @@ function updateThemeIcon() {
 }
 $('theme-toggle-btn').addEventListener('click', () => {
   currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
-  localStorage.setItem('mixnote_theme', currentTheme);
+  localStorage.setItem('reamark_theme', currentTheme);
   if (appSettings) applySettings(appSettings);
   if (ws && appSettings) {
     const c = getThemeColors(appSettings);

@@ -1,10 +1,10 @@
-# Mixnote VST3 Architecture
+# ReaMark VST3 Architecture
 
 ## Plugin Information
 
 ### Identity
 - **Company**: Stoersender
-- **Product Name**: Mixnote
+- **Product Name**: ReaMark
 - **Manufacturer Code**: `Stss` (4-char identifier)
 - **Plugin Code**: `Stmx` (4-char identifier)
 - **Version**: 1.0.0
@@ -64,7 +64,7 @@ std::map<int, double> calibrationOffsets;
 - Favourite version tracking
 - Admin vs. guest user permissions
 
-#### `MixnoteApi.cpp` / `MixnoteApi.h`
+#### `ReaMarkApi.cpp` / `ReaMarkApi.h`
 **Responsibility**: Backend HTTP communication
 
 **Endpoints**:
@@ -110,7 +110,7 @@ std::map<int, double> calibrationOffsets;
   - Scrollable viewport
   - Refresh button
 
-#### `MixnoteTheme.cpp` / `MixnoteTheme.h`
+#### `ReaMarkTheme.cpp` / `ReaMarkTheme.h`
 **Responsibility**: Consistent look & feel
 
 **Custom LookAndFeel**:
@@ -206,7 +206,7 @@ JUCE_DISPLAY_SPLASH_SCREEN 1  # GPL compliance
 - **Classes**: PascalCase (`WaveformComponent`)
 - **Methods**: camelCase (`loadComments()`)
 - **Members**: camelCase (`transportPosition`)
-- **Namespaces**: lowercase (`mixnote`)
+- **Namespaces**: lowercase (`reamark`)
 
 ### JUCE Patterns
 - **Callbacks**: `std::function<>` members (`onSeek`, `onResolve`)

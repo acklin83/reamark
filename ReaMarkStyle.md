@@ -1,6 +1,6 @@
-# Mixnote ReaImGui Style Guide
+# ReaMark ReaImGui Style Guide
 
-Reusable dark theme design system for REAPER Lua/ReaImGui scripts, based on `mixnote_v2.lua`.
+Reusable dark theme design system for REAPER Lua/ReaImGui scripts, based on `reamark_v2.lua`.
 
 ---
 
@@ -188,7 +188,7 @@ reaper.ImGui_TextColored(ctx, C.text_dim, "metadata text")
 
 ## Quick Start Template
 
-Copy this into a new script to get the Mixnote theme:
+Copy this into a new script to get the ReaMark theme:
 
 ```lua
 -- Requires ReaImGui
@@ -203,7 +203,7 @@ local function loop()
   local visible, open = reaper.ImGui_Begin(ctx, 'My Script', true)
   if visible then
     -- Your UI here
-    reaper.ImGui_Text(ctx, "Hello Mixnote Style")
+    reaper.ImGui_Text(ctx, "Hello ReaMark Style")
     reaper.ImGui_End(ctx)
   end
   pop_theme()

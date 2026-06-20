@@ -1,6 +1,6 @@
 # Caddy automatically provisions and renews a Let's Encrypt certificate for
-# this hostname. Set MIXNOTE_DOMAIN in your .env file.
-{$MIXNOTE_DOMAIN} {
+# this hostname. Set REAMARK_DOMAIN in your .env file.
+{$REAMARK_DOMAIN} {
 	# 500 MB upload ceiling (matches nginx client_max_body_size)
 	request_body {
 		max_size 500MB

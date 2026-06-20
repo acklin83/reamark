@@ -1,9 +1,9 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
 
-namespace mixnote {
+namespace reamark {
 
-// Colours matching Mixnote website dark theme
+// Colours matching ReaMark website dark theme
 namespace Theme {
     // Backgrounds (4-level hierarchy)
     inline juce::Colour bgBody()   { return juce::Colour(0xFF0F0F0F); }
@@ -32,9 +32,9 @@ namespace Theme {
     inline juce::Colour cardSolved() { return juce::Colour(0x601A2A1A); }
 }
 
-class MixnoteLookAndFeel : public juce::LookAndFeel_V4 {
+class ReaMarkLookAndFeel : public juce::LookAndFeel_V4 {
 public:
-    MixnoteLookAndFeel();
+    ReaMarkLookAndFeel();
 
     void drawButtonBackground(juce::Graphics& g, juce::Button& button,
                               const juce::Colour& backgroundColour,
@@ -66,4 +66,4 @@ public:
     void drawLabel(juce::Graphics& g, juce::Label& label) override;
 };
 
-} // namespace mixnote
+} // namespace reamark

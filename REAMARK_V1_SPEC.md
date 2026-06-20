@@ -1,6 +1,6 @@
-# MixNote V1 — Product Specification
+# ReaMark V1 — Product Specification
 
-> **Zweck dieses Dokuments:** Single Source of Truth für die Entwicklung von MixNote V1.
+> **Zweck dieses Dokuments:** Single Source of Truth für die Entwicklung von ReaMark V1.
 > Dieses Dokument wird im Repository abgelegt und dient als Briefing für Claude Code.
 > Letzte Aktualisierung: 2026-02-12
 
@@ -8,7 +8,7 @@
 
 ## 1. Produktvision
 
-MixNote ist eine webbasierte Audio-Review-Plattform für Recording-Studios, Mixing/Mastering-Engineers und Produzenten. Kunden erhalten einen Link, hören den Mix, kommentieren direkt auf der Timeline und geben ihr Approval — ohne Account, ohne App-Download, ohne Reibung.
+ReaMark ist eine webbasierte Audio-Review-Plattform für Recording-Studios, Mixing/Mastering-Engineers und Produzenten. Kunden erhalten einen Link, hören den Mix, kommentieren direkt auf der Timeline und geben ihr Approval — ohne Account, ohne App-Download, ohne Reibung.
 
 **Positioning:** "Die zuverlässige Mixup.audio-Alternative — gebaut von einem Engineer, der es jeden Tag nutzt."
 
@@ -57,7 +57,7 @@ MixNote ist eine webbasierte Audio-Review-Plattform für Recording-Studios, Mixi
 - Enterprise-orientiert, teurer
 - Fokus auf Delivery, nicht Review
 
-### MixNote Differenzierung
+### ReaMark Differenzierung
 1. **Reliability > Feature Bloat** — Es funktioniert. Jedes Mal. Auf jedem Gerät.
 2. **Projekt-zentrisch** statt Track-zentrisch — ein Auftrag = ein Projekt mit Status
 3. **Approval als dokumentierter Workflow** — nicht nur ein Button
@@ -76,7 +76,7 @@ MixNote ist eine webbasierte Audio-Review-Plattform für Recording-Studios, Mixi
 | **Songs total** | 15 | Unbegrenzt | Unbegrenzt |
 | **Zeitlimit** | 15 Tage pro Track | Keins | Keins |
 | **Approval** | Basic (Button) | ✓ mit E-Mail-Bestätigung | ✓ mit PDF-Export |
-| **Branding** | MixNote-Brand | Logo + Farben | Custom Subdomain + White Label |
+| **Branding** | ReaMark-Brand | Logo + Farben | Custom Subdomain + White Label |
 | **Notifications** | Basis-E-Mail | ✓ + Auto-Nudge | ✓ + Wöchentlicher Digest |
 | **Dashboard** | Einfach | Vollständig | Vollständig |
 | **Storage** | 2 GB | 50 GB | 200 GB |
@@ -115,8 +115,8 @@ MixNote ist eine webbasierte Audio-Review-Plattform für Recording-Studios, Mixi
 
 ```
 Routing:
-  studio-name.mixnote.io → Caddy → FastAPI (tenant_id aus Subdomain)
-  mixnote.io/s/{share_uuid} → Öffentlicher Share-Link (tenant-agnostisch)
+  studio-name.reamark.io → Caddy → FastAPI (tenant_id aus Subdomain)
+  reamark.io/s/{share_uuid} → Öffentlicher Share-Link (tenant-agnostisch)
 ```
 
 **Begründung:** Einfacher zu warten, einfacher zu migrieren, Queries über alle Tenants möglich (Admin-Analytics). Tenant-Isolation über konsequente WHERE-Clauses und Middleware.
@@ -397,13 +397,13 @@ POST   /api/webhooks/stripe                    → Stripe Webhooks empfangen
 7. Upload startet, Waveform wird generiert
 8. "Share-Link erstellen" → Link kopieren, optional mit Passwort
 9. Link per E-Mail/WhatsApp an Kunden senden
-   ODER: E-Mail direkt aus MixNote (wenn Client-E-Mail hinterlegt)
+   ODER: E-Mail direkt aus ReaMark (wenn Client-E-Mail hinterlegt)
 ```
 
 ### 8.2 Client: Mix reviewen und kommentieren
 
 ```
-1. Klick auf Share-Link → Browser öffnet MixNote Client-View
+1. Klick auf Share-Link → Browser öffnet ReaMark Client-View
 2. Kein Login, kein Account, kein Download
 3. Projekt-Titel und Studio-Branding sichtbar
 4. Song-Liste mit aktuellem Status
@@ -435,7 +435,7 @@ POST   /api/webhooks/stripe                    → Stripe Webhooks empfangen
 
 ```
 1. REAPER Script installieren (Lua/ReaImGui)
-2. Script öffnen → MixNote-URL eingeben + API-Token
+2. Script öffnen → ReaMark-URL eingeben + API-Token
 3. Projekte laden → Song auswählen
 4. Kommentare erscheinen im REAPER-Fenster
 5. Klick auf Kommentar → REAPER-Playhead springt zu Position
@@ -478,30 +478,30 @@ Pro/Studio: PDF-Approval-Dokument generieren
 ### 9.1 Marketing / Public
 
 ```
-mixnote.io/                → Landing Page (Pitch, Features, Pricing, CTA)
-mixnote.io/pricing         → Pricing-Vergleich
-mixnote.io/login           → Login-Formular
-mixnote.io/register        → Registrierung
-mixnote.io/s/{token}       → Client Share-View (öffentlich)
+reamark.io/                → Landing Page (Pitch, Features, Pricing, CTA)
+reamark.io/pricing         → Pricing-Vergleich
+reamark.io/login           → Login-Formular
+reamark.io/register        → Registrierung
+reamark.io/s/{token}       → Client Share-View (öffentlich)
 ```
 
 ### 9.2 Engineer App (nach Login)
 
 ```
-app.mixnote.io/                     → Dashboard (Projektübersicht, Notifications)
-app.mixnote.io/projects             → Alle Projekte (Filter, Suche)
-app.mixnote.io/projects/new         → Neues Projekt erstellen
-app.mixnote.io/projects/{id}        → Projekt-Detail (Songs, Versionen, Kommentare)
-app.mixnote.io/projects/{id}/share  → Share-Links verwalten
-app.mixnote.io/settings             → Account-Einstellungen
-app.mixnote.io/settings/branding    → Logo, Farben, Subdomain (Pro/Studio)
-app.mixnote.io/settings/billing     → Plan, Stripe Portal
+app.reamark.io/                     → Dashboard (Projektübersicht, Notifications)
+app.reamark.io/projects             → Alle Projekte (Filter, Suche)
+app.reamark.io/projects/new         → Neues Projekt erstellen
+app.reamark.io/projects/{id}        → Projekt-Detail (Songs, Versionen, Kommentare)
+app.reamark.io/projects/{id}/share  → Share-Links verwalten
+app.reamark.io/settings             → Account-Einstellungen
+app.reamark.io/settings/branding    → Logo, Farben, Subdomain (Pro/Studio)
+app.reamark.io/settings/billing     → Plan, Stripe Portal
 ```
 
 ### 9.3 Client Share-View (kein Login)
 
 ```
-mixnote.io/s/{token}                → Projekt mit allen Songs
+reamark.io/s/{token}                → Projekt mit allen Songs
   ├── Song-Liste (Titel, Status, letzte Version)
   ├── Audio-Player mit Waveform
   ├── Versions-Switcher (Dropdown)
@@ -522,7 +522,7 @@ mixnote.io/s/{token}                → Projekt mit allen Songs
 - **Responsive, nicht Mobile-First.** Engineers arbeiten am Desktop. Clients reviewen oft am Handy.
 
 ### Client-View Regeln
-- Kein sichtbares MixNote-Branding im Studio-Plan
+- Kein sichtbares ReaMark-Branding im Studio-Plan
 - Maximale Schriftgrösse für Kommentar-Input
 - Play-Button muss das grösste Element sein
 - Waveform-Kommentare: farbliche Unterscheidung Engineer vs. Client
@@ -651,7 +651,7 @@ Background Job nach Upload:
 
 ```lua
 -- ReaImGui-basiertes Script
--- Kommuniziert mit MixNote API
+-- Kommuniziert mit ReaMark API
 
 Features:
 1. Login mit API-Token
@@ -665,7 +665,7 @@ Features:
 ```
 
 ### API-Token
-- Generiert in MixNote Settings
+- Generiert in ReaMark Settings
 - Long-lived Token (kein JWT-Refresh nötig)
 - Scope: Read/Write auf eigene Projekte
 - Widerrufbar in Settings
@@ -715,7 +715,7 @@ Features:
 - [ ] Approval PDF-Export (Pro/Studio)
 - [ ] Auto-Nudge Notifications (7 Tage ohne Feedback)
 - [ ] Weekly Digest E-Mail (Studio)
-- [ ] Landing Page (mixnote.io)
+- [ ] Landing Page (reamark.io)
 - [ ] Onboarding-Flow (nach Registration)
 - [ ] Settings-Seiten (Account, Branding, Billing)
 
@@ -805,8 +805,8 @@ Diese Features sind explizit ausgeschlossen, um Scope Creep zu vermeiden:
 | **Version** | Eine spezifische Iteration eines Songs (V1, V2, V3...) |
 | **Share-Link** | Öffentlicher URL der Kunden Zugang zum Projekt gibt |
 | **Approval** | Formelle Freigabe einer Song-Version durch den Kunden |
-| **Engineer** | Der Studio-Betreiber / MixNote-Nutzer (bezahlt) |
-| **Client** | Der Kunde des Engineers (nutzt MixNote kostenlos via Share-Link) |
+| **Engineer** | Der Studio-Betreiber / ReaMark-Nutzer (bezahlt) |
+| **Client** | Der Kunde des Engineers (nutzt ReaMark kostenlos via Share-Link) |
 | **Nudge** | Automatische Erinnerung an Client bei ausstehendem Feedback |
 
 ---
@@ -817,25 +817,25 @@ Diese Features sind explizit ausgeschlossen, um Scope Creep zu vermeiden:
 # App
 APP_ENV=production
 APP_SECRET_KEY=<random-64-char>
-APP_BASE_URL=https://mixnote.io
-APP_ALLOWED_ORIGINS=https://mixnote.io,https://*.mixnote.io
+APP_BASE_URL=https://reamark.io
+APP_ALLOWED_ORIGINS=https://reamark.io,https://*.reamark.io
 
 # Database
-DATABASE_URL=postgresql://mixnote:password@db:5432/mixnote
+DATABASE_URL=postgresql://reamark:password@db:5432/reamark
 
 # Redis (Background Jobs, Caching)
 REDIS_URL=redis://redis:6379/0
 
 # Storage (S3-kompatibel)
 S3_ENDPOINT=https://s3.eu-central-003.backblazeb2.com
-S3_BUCKET=mixnote-audio
+S3_BUCKET=reamark-audio
 S3_ACCESS_KEY=<key>
 S3_SECRET_KEY=<secret>
 S3_REGION=eu-central-003
 
 # E-Mail
 POSTMARK_API_TOKEN=<token>
-EMAIL_FROM=notifications@mixnote.io
+EMAIL_FROM=notifications@reamark.io
 
 # Stripe
 STRIPE_SECRET_KEY=<key>
@@ -846,8 +846,8 @@ STRIPE_PRICE_STUDIO_MONTHLY=price_xxx
 STRIPE_PRICE_STUDIO_YEARLY=price_xxx
 
 # JWT
-JWT_PRIVATE_KEY_PATH=/etc/mixnote/jwt_private.pem
-JWT_PUBLIC_KEY_PATH=/etc/mixnote/jwt_public.pem
+JWT_PRIVATE_KEY_PATH=/etc/reamark/jwt_private.pem
+JWT_PUBLIC_KEY_PATH=/etc/reamark/jwt_public.pem
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES=15
 JWT_REFRESH_TOKEN_EXPIRE_DAYS=7
 
@@ -878,11 +878,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      POSTGRES_DB: mixnote
-      POSTGRES_USER: mixnote
+      POSTGRES_DB: reamark
+      POSTGRES_USER: reamark
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U mixnote"]
+      test: ["CMD-SHELL", "pg_isready -U reamark"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -954,21 +954,21 @@ volumes:
 
 ```caddyfile
 # Main site
-mixnote.io {
+reamark.io {
     reverse_proxy app:8000
 }
 
 # App subdomain
-app.mixnote.io {
+app.reamark.io {
     reverse_proxy app:8000
 }
 
 # Wildcard für Tenant-Subdomains (Studio-Plan)
-*.mixnote.io {
+*.reamark.io {
     reverse_proxy app:8000
 }
 ```
 
 ---
 
-*Ende der Spezifikation. Dieses Dokument wird im Repository unter `/docs/MIXNOTE_V1_SPEC.md` abgelegt und bei Bedarf aktualisiert.*
+*Ende der Spezifikation. Dieses Dokument wird im Repository unter `/docs/REAMARK_V1_SPEC.md` abgelegt und bei Bedarf aktualisiert.*

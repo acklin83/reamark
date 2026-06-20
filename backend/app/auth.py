@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from .database import get_db
 from .models import AdminUser, Project
 
-SECRET_KEY = os.environ.get("MIXNOTE_SECRET_KEY", "dev-secret-change-in-production")
+SECRET_KEY = os.environ.get("REAMARK_SECRET_KEY") or os.environ.get("MIXNOTE_SECRET_KEY", "dev-secret-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 

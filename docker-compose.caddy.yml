@@ -1,24 +1,24 @@
-# Mixnote with automatic HTTPS via Caddy (Let's Encrypt).
+# ReaMark with automatic HTTPS via Caddy (Let's Encrypt).
 # Easiest public deployment if you have a domain pointing at this host and
 # ports 80 + 443 reachable from the internet.
 #
-#   curl -O https://raw.githubusercontent.com/acklin83/mixnote/main/docker-compose.caddy.yml
-#   curl -O https://raw.githubusercontent.com/acklin83/mixnote/main/Caddyfile
-#   printf "MIXNOTE_SECRET_KEY=%s\nMIXNOTE_DOMAIN=mix.example.com\n" "$(openssl rand -hex 32)" > .env
+#   curl -O https://raw.githubusercontent.com/acklin83/reamark/main/docker-compose.caddy.yml
+#   curl -O https://raw.githubusercontent.com/acklin83/reamark/main/Caddyfile
+#   printf "REAMARK_SECRET_KEY=%s\nREAMARK_DOMAIN=mix.example.com\n" "$(openssl rand -hex 32)" > .env
 #   docker compose -f docker-compose.caddy.yml up -d
 #
-# Caddy obtains and renews the TLS certificate automatically for MIXNOTE_DOMAIN.
+# Caddy obtains and renews the TLS certificate automatically for REAMARK_DOMAIN.
 services:
   backend:
-    image: ghcr.io/acklin83/mixnote-backend:latest
+    image: ghcr.io/acklin83/reamark-backend:latest
     volumes:
       - ./data:/data
     environment:
-      - MIXNOTE_SECRET_KEY=${MIXNOTE_SECRET_KEY:?Set MIXNOTE_SECRET_KEY in .env (openssl rand -hex 32)}
+      - REAMARK_SECRET_KEY=${REAMARK_SECRET_KEY:?Set REAMARK_SECRET_KEY in .env (openssl rand -hex 32)}
     restart: unless-stopped
 
   nginx:
-    image: ghcr.io/acklin83/mixnote-nginx:latest
+    image: ghcr.io/acklin83/reamark-nginx:latest
     volumes:
       - ./data/uploads:/data/uploads:ro
     depends_on:
@@ -31,7 +31,7 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      - MIXNOTE_DOMAIN=${MIXNOTE_DOMAIN:?Set MIXNOTE_DOMAIN to your public hostname (e.g. mix.example.com)}
+      - REAMARK_DOMAIN=${REAMARK_DOMAIN:?Set REAMARK_DOMAIN to your public hostname (e.g. mix.example.com)}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

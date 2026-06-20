@@ -1,17 +1,17 @@
 #pragma once
 #include <juce_core/juce_core.h>
 #include <juce_events/juce_events.h>
-#include "MixnoteModels.h"
+#include "ReaMarkModels.h"
 #include <functional>
 
-namespace mixnote {
+namespace reamark {
 
-// Async API client for the Mixnote backend.
+// Async API client for the ReaMark backend.
 // All requests run on a background thread; callbacks are invoked on the message thread.
-class MixnoteApi {
+class ReaMarkApi {
 public:
-    MixnoteApi();
-    ~MixnoteApi();
+    ReaMarkApi();
+    ~ReaMarkApi();
 
     void setServerUrl(const juce::String& url);
     juce::String getServerUrl() const;
@@ -74,7 +74,7 @@ private:
     HttpResponse httpDelete(const juce::String& endpoint);
     HttpResponse httpRequest(const juce::String& method, const juce::String& endpoint, const juce::String& body = {});
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MixnoteApi)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ReaMarkApi)
 };
 
-} // namespace mixnote
+} // namespace reamark

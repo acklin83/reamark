@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the Mixnote VST3 Plugin will be documented in this file.
+All notable changes to the ReaMark VST3 Plugin will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unused Parameter Warnings**: Added `juce::ignoreUnused()` for all unused parameters
   - `PluginProcessor.cpp`: `buffer`, `sampleRate`, `samplesPerBlock`, etc.
   - `WaveformComponent.cpp`: `event` in `mouseExit()`
-  - `MixnoteTheme.cpp`: `button`, `isButtonDown`, `box`
+  - `ReaMarkTheme.cpp`: `button`, `isButtonDown`, `box`
   - `CommentListComponent.cpp`: Removed unused `statusArea` variable
 - **Declaration Shadowing**: Fixed nested lambda parameter conflicts
   - `PluginEditor.cpp`: Renamed inner lambda `err` → `projectsErr` in `doLogin()`

@@ -1,4 +1,4 @@
-# Mixnote Roadmap
+# ReaMark Roadmap
 
 ## V1 — Erledigt
 
@@ -18,7 +18,7 @@
 - [ ] Real-time Updates (WebSocket)
 - [ ] Link-Ablaufdatum (Share Links mit Expiration)
 - [ ] Mobile App
-- [ ] mixnote.lua für ReaPack parat machen (in Documents/reaper-scripts)
+- [ ] reamark.lua für ReaPack parat machen (in Documents/reaper-scripts)
 - [ ] Regionen statt nur Timestamps (Waveform-Bereich markieren, z.B. 0:15–0:35, in Client + REAPER Lua)
 - [ ] Alternative Layout-Ansicht (Waveform sticky oben, Versionen rechts, Kommentare unten)
 
@@ -32,5 +32,5 @@
 - [x] Caddy-Compose für automatisches HTTPS (`docker-compose.caddy.yml`, `Caddyfile`)
 - [x] README erweitert (prebuilt images, Caddy-HTTPS, Branding, Configuration)
 - [x] Rate-Limiting (slowapi: Login 10/min, Setup 5/min, Comments/Replies 30/min, X-Forwarded-For-aware)
-- [x] ReaPack-Header in `mixnote.lua` (Repo/index.xml-Setup = separater Schritt)
+- [x] ReaPack-Header in `reamark.lua` (Repo/index.xml-Setup = separater Schritt)
 - [x] VST3-Release-Workflow (macOS universal, an GitHub Release angehängt bei Tag)

@@ -1,7 +1,7 @@
 Never use any agents for this project to save tokens - only when user explicitly requests it.
 Be very prudent with token use!
 
-# Mixnote System - Project Documentation
+# ReaMark System - Project Documentation
 
 ## Project Overview
 A self-hosted audio review platform for Störsender-Studio that allows clients to listen to mix versions and leave timeline-based comments via secure share links.
@@ -96,7 +96,7 @@ Project
 
 ### Directory Structure
 ```
-mixnote/
+reamark/
 ├── docker-compose.yml
 ├── nginx/
 │   ├── Dockerfile
@@ -125,7 +125,7 @@ mixnote/
 │       ├── css/
 │       └── js/
 ├── reaper/
-│   └── mixnote_comments.lua  # REAPER ReaImGui integration script
+│   └── reamark_comments.lua  # REAPER ReaImGui integration script
 └── data/
     ├── uploads/          # Audio files
     ├── database/         # SQLite DB
@@ -289,7 +289,7 @@ https://mix.stoersender.ch/admin/setup
 ### Local Development
 ```bash
 # Clone/create project
-cd ~/Projects/mixnote
+cd ~/Projects/reamark
 
 # Start services
 docker-compose up --build
@@ -303,11 +303,11 @@ API Docs: http://localhost:8000/docs
 ### Synology Deployment
 ```bash
 # From development machine
-rsync -avz ~/Projects/mixnote/ user@diskstation:/volume1/docker/mixnote/
+rsync -avz ~/Projects/reamark/ user@diskstation:/volume1/docker/reamark/
 
 # On DiskStation
 ssh user@diskstation
-cd /volume1/docker/mixnote
+cd /volume1/docker/reamark
 docker-compose up -d
 
 # Configure in Synology DSM:
@@ -370,15 +370,15 @@ PATCH  /api/projects/{uuid}/comments/{id}/resolve-client    # Toggle resolved (s
 
 ## REAPER Integration
 
-### Script: `reaper/mixnote.lua`
-A ReaImGui-based script for managing Mixnote comments directly from REAPER.
+### Script: `reaper/reamark.lua`
+A ReaImGui-based script for managing ReaMark comments directly from REAPER.
 
 **Requirements:**
 - REAPER 6.0+
 - ReaImGui extension (install via ReaPack)
 
 **Installation:**
-1. Copy `reaper/mixnote.lua` to your REAPER Scripts folder
+1. Copy `reaper/reamark.lua` to your REAPER Scripts folder
 2. In REAPER: Actions → Show Action List → Load ReaScript
 3. Assign a keyboard shortcut if desired
 
@@ -412,13 +412,13 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
 ### 2025-01-31: WebView Experiment (CANCELLED)
 - **Branch:** `webview`
 - **Attempted:** Replace Lua/ImGui script with Python WebView approach (local HTTP + WebSocket server opening a browser window)
-- **Result:** REAPER has no built-in browser/webview. Opening an external browser provides no advantage over just using the Mixnote web interface directly. Cancelled after ~1 hour.
-- **Decision:** Keep the Lua/ImGui script (`mixnote_comments.lua`) as the REAPER integration. Improve it instead of replacing it.
+- **Result:** REAPER has no built-in browser/webview. Opening an external browser provides no advantage over just using the ReaMark web interface directly. Cancelled after ~1 hour.
+- **Decision:** Keep the Lua/ImGui script (`reamark_comments.lua`) as the REAPER integration. Improve it instead of replacing it.
 - **Also considered C++ REAPER extension** - rejected as overkill for a comment/form UI.
 
 ### 2025-02-01: Lua/ImGui Beautification (DONE)
 - **Branch:** `lua-beautification`
-- **Goal:** Visually improve `mixnote_comments.lua` to look closer to the Mixnote website. Dark theme, better colors, spacing, comment card styling.
+- **Goal:** Visually improve `reamark_comments.lua` to look closer to the ReaMark website. Dark theme, better colors, spacing, comment card styling.
 - **Approach:** Stay with Lua/ReaImGui, use style customization (PushStyleColor, PushStyleVar, fonts, draw lists).
 - **Result:** Website-style dark theme, styled comment cards, accent colors, improved spacing.
 
@@ -429,7 +429,7 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
   3. **Client comment Edit/Delete**: Added public (no JWT) endpoints `PUT` and `DELETE` on `/api/projects/{share_link}/comments/{comment_id}`. Added Edit/Delete buttons to client comment cards.
   4. **Client reply form fix**: Reply form restructured to vertical layout to prevent overflow.
 - **Files modified:**
-  - `reaper/mixnote.lua` — author_name fix, Reply button alignment
+  - `reaper/reamark.lua` — author_name fix, Reply button alignment
   - `backend/app/routers/comments.py` — client edit/delete endpoints
   - `backend/app/schemas.py` — CommentUpdate schema
   - `frontend/client/js/client.js` — edit/delete UI, reply form layout fix
@@ -439,7 +439,7 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
   1. **Logout reset**: On logout, all state cleared so UI returns to initial login view.
   2. **Edit mode line breaks**: Edit textarea auto-sizes height based on newlines.
 - **Files modified:**
-  - `reaper/mixnote.lua`
+  - `reaper/reamark.lua`
 - **Note:** "Add Song" / "Upload New Version" from REAPER rejected — no file browser in ReaImGui.
 
 ### 2025-02-02: Waveform Player + Autoplay Toggle
@@ -450,13 +450,13 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
   4. **Autoplay toggle**: Checkbox on offset line controls seek+play vs seek-only behavior for waveform clicks and timecode buttons. Persisted in ExtState.
   5. **Marker tooltips**: Hovering over comment markers on waveform shows tooltip with timecode, author and text.
   6. **Login section**: Removed collapsible TreeNode, now always visible.
-  7. **Renamed**: `mixnote_v2.lua` → `mixnote.lua`
+  7. **Renamed**: `reamark_v2.lua` → `reamark.lua`
 - **Files modified:**
   - `backend/Dockerfile` — ffmpeg install
   - `backend/requirements.txt` — pydub
   - `backend/app/audio_utils.py` — NEW: peak generation + caching
   - `backend/app/routers/projects.py` — peaks endpoint
-  - `reaper/mixnote.lua` — waveform, autoplay, tooltips, layout
+  - `reaper/reamark.lua` — waveform, autoplay, tooltips, layout
 
 ### 2026-02-10: Light-Mode Fix
 - **Changes:**
@@ -544,13 +544,13 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
   - `juce::Font(12.0f)` → `juce::Font(juce::FontOptions(12.0f))`
   - `getStringWidth()` → `GlyphArrangement` + `getBoundingBox()`
   - Betroffen: `WaveformComponent.cpp`, `CommentListComponent.cpp`
-- **Unused parameters**: `juce::ignoreUnused()` in `PluginProcessor.cpp`, `WaveformComponent.cpp`, `MixnoteTheme.cpp`, `CommentListComponent.cpp`
+- **Unused parameters**: `juce::ignoreUnused()` in `PluginProcessor.cpp`, `WaveformComponent.cpp`, `ReaMarkTheme.cpp`, `CommentListComponent.cpp`
 - **Declaration shadowing**: Lambda-Parameter-Konflikte in `PluginEditor.cpp` behoben (`err` → `projectsErr`, `v` → `version`)
 - **Manufacturer**: "Stoersender" (Codes: `Stss`/`Stmx`, war `Mxnt`/`Mxnp`)
 - **Build Format**: Nur noch VST3 (Standalone entfernt)
 - **JUCE Splash Screen**: Aktiviert (`JUCE_DISPLAY_SPLASH_SCREEN=1`) für GPL-Compliance
 - **Docs**: `vst3/docs/BUILD.md`, `vst3/docs/ARCHITECTURE.md`, `vst3/CHANGELOG.md` erstellt
-- **Files modified:** `vst3/CMakeLists.txt`, `vst3/Source/WaveformComponent.cpp`, `vst3/Source/CommentListComponent.cpp`, `vst3/Source/PluginProcessor.cpp`, `vst3/Source/PluginEditor.cpp`, `vst3/Source/MixnoteTheme.cpp`
+- **Files modified:** `vst3/CMakeLists.txt`, `vst3/Source/WaveformComponent.cpp`, `vst3/Source/CommentListComponent.cpp`, `vst3/Source/PluginProcessor.cpp`, `vst3/Source/PluginEditor.cpp`, `vst3/Source/ReaMarkTheme.cpp`
 
 ### 2026-02-10: Template Migration & Batch Email Grouping
 - **Changes:**
@@ -563,37 +563,37 @@ A ReaImGui-based script for managing Mixnote comments directly from REAPER.
   - `backend/app/email_service.py` — Song-grouped batch emails, fire-and-forget timer task, custom HTML generation
 
 ### 2026-06-19: Open-Source Publishing Prep — Branding Gaps + Packaging
-- **Goal:** Mixnote für andere REAPER-User veröffentlichen — self-hosted, open source, white-label-fähig.
+- **Goal:** ReaMark für andere REAPER-User veröffentlichen — self-hosted, open source, white-label-fähig.
 - **Branch:** `publish/branding-and-oss`
 - **Branding-Lücken geschlossen** (White-Labeling jetzt vollständig):
-  1. `site_name` (AppSettings) — ersetzt hartkodiertes "Mixnote" in `<title>`, Admin-Header, Admin-Login-`<h1>`. Per Admin-Settings editierbar.
+  1. `site_name` (AppSettings) — ersetzt hartkodiertes "ReaMark" in `<title>`, Admin-Header, Admin-Login-`<h1>`. Per Admin-Settings editierbar.
   2. **Favicon-Upload** (PNG/ICO/SVG, max 1 MB) — analog zum Logo-Upload. Endpoints `POST/DELETE /admin/settings/favicon`, `GET /api/favicon`. Dynamisch via `<link id="favicon">` + `applySettings()`.
-  3. Migration additiv + idempotent (`site_name TEXT DEFAULT 'Mixnote'`, `favicon_path TEXT`) — Defaults = bisheriges Aussehen, **Live-Instanz ändert sich optisch nicht** bis manuell gesetzt.
-- **Packaging:** `.env.example` (Secret-Key-Generierung dokumentiert), `nginx.conf` `server_name _` (generisch statt `mix.stoersender.ch`), `.gitignore` schließt `STUDIO_OS_SPEC.md` aus (Spec eines anderen Projekts, nicht Teil von Mixnote).
+  3. Migration additiv + idempotent (`site_name TEXT DEFAULT 'ReaMark'`, `favicon_path TEXT`) — Defaults = bisheriges Aussehen, **Live-Instanz ändert sich optisch nicht** bis manuell gesetzt.
+- **Packaging:** `.env.example` (Secret-Key-Generierung dokumentiert), `nginx.conf` `server_name _` (generisch statt `mix.stoersender.ch`), `.gitignore` schließt `STUDIO_OS_SPEC.md` aus (Spec eines anderen Projekts, nicht Teil von ReaMark).
 - **Files modified:** `backend/app/models.py`, `backend/app/main.py` (Migration), `backend/app/schemas.py`, `backend/app/routers/settings.py`, `frontend/admin/index.html`, `frontend/admin/js/admin.js`, `frontend/client/index.html`, `frontend/client/js/client.js`, `nginx/nginx.conf`, `.gitignore`, `.env.example` (NEU)
 - **NOCH OFFEN (braucht Frank-Entscheidung, bewusst nicht erledigt):**
   - **LICENSE**: GPLv3 empfohlen (JUCE-Pflicht fürs VST3) — JUCE-Terms vor Release an der Quelle verifizieren, nicht aus Gedächtnis.
   - ~~Git-History-Scrub von `claude.md`~~ — HINFÄLLIG: `claude.md` IST die Projektdoku (= `CLAUDE.md`, case-insensitive macOS), kein sensibler Inhalt. Bleibt public. Kein Scrub nötig.
-  - Prebuilt Images (ghcr.io + Actions), Caddy-Compose für Auto-HTTPS, generisches README, Rate-Limiting, ReaPack-Repo für `mixnote.lua`, VST3-Release.
+  - Prebuilt Images (ghcr.io + Actions), Caddy-Compose für Auto-HTTPS, generisches README, Rate-Limiting, ReaPack-Repo für `reamark.lua`, VST3-Release.
 
 ### 2026-06-19: Distribution — Prebuilt Images + Caddy Auto-HTTPS + README
 - **Wichtig:** Backend löst `FRONTEND_DIR` auf `/frontend` auf (Live-/Dev-Setup mountet `./frontend:/frontend`). Für prebuilt Images muss das Frontend INS Image gebacken werden, sonst kein UI ohne Repo-Checkout.
 - **`Dockerfile.dist`** (NEU, Root-Context): Backend → `/app`, Frontend → `/frontend`. Nur für Distribution; `backend/Dockerfile` + Volume-Mount bleiben fürs Dev-/Live-Setup unangetastet.
-- **`.github/workflows/docker-publish.yml`** (NEU): baut + pusht bei Tag `v*` (oder manuell) zwei Images nach ghcr.io — `mixnote-backend` (via Dockerfile.dist) und `mixnote-nginx`. `permissions: packages: write`, semver + latest Tags.
+- **`.github/workflows/docker-publish.yml`** (NEU): baut + pusht bei Tag `v*` (oder manuell) zwei Images nach ghcr.io — `reamark-backend` (via Dockerfile.dist) und `reamark-nginx`. `permissions: packages: write`, semver + latest Tags.
 - **`docker-compose.ghcr.yml`** (NEU): prebuilt Images, kein Build/Checkout. `MIXNOTE_SECRET_KEY` via `:?` erzwungen. Kein Frontend-Volume (gebacken).
 - **`docker-compose.caddy.yml`** + **`Caddyfile`** (NEU): Caddy davor, automatisches Let's-Encrypt-HTTPS für `MIXNOTE_DOMAIN`. Ports 80/443. Einfachste „Zugriff von außen"-Lösung für Self-Hoster ohne NAS.
 - **README**: Sektionen „Prebuilt images", „Automatic HTTPS with Caddy", „Configuration", „Branding". `.env.example` um `MIXNOTE_DOMAIN` erweitert.
 - **Validiert:** alle 3 Compose-Files `docker compose config -q` OK.
 - **Files:** `Dockerfile.dist`, `.github/workflows/docker-publish.yml`, `docker-compose.ghcr.yml`, `docker-compose.caddy.yml`, `Caddyfile`, `.env.example`, `README.md`, `ROADMAP.md` (alle NEU bzw. erweitert)
-- **Image-Namespace** hängt an `github.repository` = `acklin83/mixnote` → `ghcr.io/acklin83/mixnote-{backend,nginx}`. Bei Repo-Umzug Pfade in den Compose-Files + README anpassen.
+- **Image-Namespace** hängt an `github.repository` = `acklin83/reamark` → `ghcr.io/acklin83/reamark-{backend,nginx}`. Bei Repo-Umzug Pfade in den Compose-Files + README anpassen.
 
 ### 2026-06-19: License (AGPLv3) + Rate-Limiting + ReaPack + VST3-Release
 - **Lizenz an der Quelle verifiziert (nicht aus Gedächtnis):** JUCEs kostenlose Option ist **AGPLv3** (nicht GPLv3!). VST3 SDK ist seit 2025 **MIT** (Steinberg-Dual-Lizenz abgeschafft). → Repo unter **AGPLv3** (`LICENSE` = kanonischer Text von gnu.org, `LICENSING.md` erklärt Komponenten + AGPL §13 Netzwerk-Klausel). README License-Sektion.
 - **Rate-Limiting (`slowapi==0.1.9`):** neues Modul `backend/app/ratelimit.py` (`limiter`, key_func bevorzugt `X-Forwarded-For` hinter Proxy). In `main.py` `app.state.limiter` + RateLimitExceeded-Handler. Decorators: Login `10/minute`, Setup `5/minute`, create_comment + reply `30/minute`. Endpoints brauchen `request: Request` (Comments hatten's schon, Login/Setup ergänzt).
-- **ReaPack:** `reaper/mixnote.lua` mit `@description/@author/@version/@provides/@link/@about`-Header versehen. Eigentliches ReaPack-Repo + index.xml-Action = separater Schritt (Roadmap: `Documents/reaper-scripts`).
-- **VST3-Release:** `.github/workflows/vst3-release.yml` — macOS-Runner baut universal (CMake forced arm64;x86_64), zippt `.vst3` (zip -y für Bundle-Symlinks), hängt's bei Tag `v*` an GitHub Release. Plugin PRODUCT_NAME "Mixnote", JUCE 8.0.6 via FetchContent.
-- **Files:** `LICENSE` (NEU), `LICENSING.md` (NEU), `backend/app/ratelimit.py` (NEU), `.github/workflows/vst3-release.yml` (NEU), `backend/requirements.txt`, `backend/app/main.py`, `backend/app/routers/admin.py`, `backend/app/routers/comments.py`, `reaper/mixnote.lua`, `README.md`, `ROADMAP.md`
-- **Korrektur (kein Scrub nötig):** Repo-`claude.md` = `CLAUDE.md` (case-insensitive macOS) = die Mixnote-Projektdoku, NICHT die privaten Team-Instructions (die liegen in `~/.claude/CLAUDE.md`, außerhalb des Repos). Kein sensibler Inhalt → bleibt public, kein History-Rewrite. `STUDIO_OS_SPEC.md` (Spec eines anderen Projekts, nicht sensibel) normal via `git rm` entfernt + gitignored.
+- **ReaPack:** `reaper/reamark.lua` mit `@description/@author/@version/@provides/@link/@about`-Header versehen. Eigentliches ReaPack-Repo + index.xml-Action = separater Schritt (Roadmap: `Documents/reaper-scripts`).
+- **VST3-Release:** `.github/workflows/vst3-release.yml` — macOS-Runner baut universal (CMake forced arm64;x86_64), zippt `.vst3` (zip -y für Bundle-Symlinks), hängt's bei Tag `v*` an GitHub Release. Plugin PRODUCT_NAME "ReaMark", JUCE 8.0.6 via FetchContent.
+- **Files:** `LICENSE` (NEU), `LICENSING.md` (NEU), `backend/app/ratelimit.py` (NEU), `.github/workflows/vst3-release.yml` (NEU), `backend/requirements.txt`, `backend/app/main.py`, `backend/app/routers/admin.py`, `backend/app/routers/comments.py`, `reaper/reamark.lua`, `README.md`, `ROADMAP.md`
+- **Korrektur (kein Scrub nötig):** Repo-`claude.md` = `CLAUDE.md` (case-insensitive macOS) = die ReaMark-Projektdoku, NICHT die privaten Team-Instructions (die liegen in `~/.claude/CLAUDE.md`, außerhalb des Repos). Kein sensibler Inhalt → bleibt public, kein History-Rewrite. `STUDIO_OS_SPEC.md` (Spec eines anderen Projekts, nicht sensibel) normal via `git rm` entfernt + gitignored.
 - **NOCH OFFEN:** Repo public schalten, erster `v*`-Tag pushen → baut ghcr-Images + VST3.
 
 ## Development Notes

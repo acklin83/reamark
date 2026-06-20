@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Manually seed default email templates into the Mixnote database.
-Run this from the mixnote project root: python seed_templates.py
+Manually seed default email templates into the ReaMark database.
+Run this from the reamark project root: python seed_templates.py
 """
 
 import sys
@@ -42,7 +42,7 @@ def seed_templates():
     <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>{{ author_name }}</strong> <span style="color: #888; font-size: 13px;">@ {{ timecode }}</span></p>
     <p style="margin: 0; font-size: 15px;">{{ comment_text }}</p>
   </div>
-  <p style="font-size: 14px;"><a href="{{ share_url }}" style="color: #6366f1; text-decoration: none;">In Mixnote &ouml;ffnen &rarr;</a></p>
+  <p style="font-size: 14px;"><a href="{{ share_url }}" style="color: #6366f1; text-decoration: none;">In ReaMark &ouml;ffnen &rarr;</a></p>
 </div>""",
         )
 
@@ -64,7 +64,7 @@ def seed_templates():
     <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>{{ author_name }}</strong> <span style="color: #888; font-size: 13px;">@ {{ timecode }}</span></p>
     <p style="margin: 0; font-size: 15px;">{{ comment_text }}</p>
   </div>
-  <p style="font-size: 14px;"><a href="{{ share_url }}" style="color: #6366f1; text-decoration: none;">Open in Mixnote &rarr;</a></p>
+  <p style="font-size: 14px;"><a href="{{ share_url }}" style="color: #6366f1; text-decoration: none;">Open in ReaMark &rarr;</a></p>
 </div>""",
         )
 

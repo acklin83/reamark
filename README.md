@@ -1,4 +1,4 @@
-# Mixnote
+# ReaMark
 
 A self-hosted audio review platform for studios. Clients listen to mix versions and leave timeline-based comments via secure share links.
 
@@ -19,8 +19,8 @@ A self-hosted audio review platform for studios. Clients listen to mix versions 
 ## Quick Start
 
 ```bash
-git clone https://github.com/acklin83/mixnote.git
-cd mixnote
+git clone https://github.com/acklin83/reamark.git
+cd reamark
 docker-compose up --build -d
 ```
 
@@ -33,8 +33,8 @@ Visit `http://localhost:8080/admin` to set up your admin password on first run.
 The fastest way to self-host. You only need a single compose file and a secret key — images are pulled from GitHub Container Registry, nothing is built locally.
 
 ```bash
-curl -O https://raw.githubusercontent.com/acklin83/mixnote/main/docker-compose.ghcr.yml
-echo "MIXNOTE_SECRET_KEY=$(openssl rand -hex 32)" > .env
+curl -O https://raw.githubusercontent.com/acklin83/reamark/main/docker-compose.ghcr.yml
+echo "REAMARK_SECRET_KEY=$(openssl rand -hex 32)" > .env
 docker compose -f docker-compose.ghcr.yml up -d
 ```
 
@@ -45,17 +45,17 @@ Open `http://<host>:8080/admin` to set the admin password. Put a reverse proxy w
 If you have a domain pointing at the host and ports 80 + 443 are reachable, Caddy obtains and renews a Let's Encrypt certificate automatically — no manual cert setup.
 
 ```bash
-curl -O https://raw.githubusercontent.com/acklin83/mixnote/main/docker-compose.caddy.yml
-curl -O https://raw.githubusercontent.com/acklin83/mixnote/main/Caddyfile
-printf "MIXNOTE_SECRET_KEY=%s\nMIXNOTE_DOMAIN=mix.example.com\n" "$(openssl rand -hex 32)" > .env
+curl -O https://raw.githubusercontent.com/acklin83/reamark/main/docker-compose.caddy.yml
+curl -O https://raw.githubusercontent.com/acklin83/reamark/main/Caddyfile
+printf "REAMARK_SECRET_KEY=%s\nREAMARK_DOMAIN=mix.example.com\n" "$(openssl rand -hex 32)" > .env
 docker compose -f docker-compose.caddy.yml up -d
 ```
 
-Mixnote is then served at `https://mix.example.com`.
+ReaMark is then served at `https://mix.example.com`.
 
 ### Configuration
 
-Copy `.env.example` to `.env` and adjust. `MIXNOTE_SECRET_KEY` is required in production (generate with `openssl rand -hex 32`); `MIXNOTE_DOMAIN` is only needed for the Caddy variant.
+Copy `.env.example` to `.env` and adjust. `REAMARK_SECRET_KEY` is required in production (generate with `openssl rand -hex 32`); `REAMARK_DOMAIN` is only needed for the Caddy variant.
 
 ### Branding
 
@@ -70,11 +70,11 @@ Everything is white-label from **Admin > Settings** — no code changes: site na
 ssh user@diskstation
 
 # Clone repository
-git clone https://github.com/acklin83/mixnote.git /volume1/docker/mixnote
-cd /volume1/docker/mixnote
+git clone https://github.com/acklin83/reamark.git /volume1/docker/reamark
+cd /volume1/docker/reamark
 
 # Set a secure secret key
-export MIXNOTE_SECRET_KEY=$(openssl rand -hex 32)
+export REAMARK_SECRET_KEY=$(openssl rand -hex 32)
 
 # Start services
 sudo docker-compose up --build -d
@@ -105,7 +105,7 @@ X-Forwarded-Proto: $scheme
 **Updates:**
 
 ```bash
-cd /volume1/docker/mixnote
+cd /volume1/docker/reamark
 git pull
 sudo docker-compose up --build -d
 ```
@@ -113,11 +113,11 @@ sudo docker-compose up --build -d
 ### Linux / VPS
 
 ```bash
-git clone https://github.com/acklin83/mixnote.git /opt/mixnote
-cd /opt/mixnote
+git clone https://github.com/acklin83/reamark.git /opt/reamark
+cd /opt/reamark
 
 # Set secret key
-echo "MIXNOTE_SECRET_KEY=$(openssl rand -hex 32)" > .env
+echo "REAMARK_SECRET_KEY=$(openssl rand -hex 32)" > .env
 
 # Start
 docker-compose up --build -d
@@ -174,16 +174,16 @@ Visit `http://localhost:8000/admin`.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MIXNOTE_SECRET_KEY` | `change-me-to-a-random-secret` | JWT signing key. Set to a random value in production. |
+| `REAMARK_SECRET_KEY` | `change-me-to-a-random-secret` | JWT signing key. Set to a random value in production. |
 
 ## REAPER Integration
 
-The included Lua script (`reaper/mixnote.lua`) connects REAPER directly to your Mixnote instance.
+The included Lua script (`reaper/reamark.lua`) connects REAPER directly to your ReaMark instance.
 
 ### Installation
 
 1. Install [ReaImGui](https://forum.cockos.com/showthread.php?t=250419) via ReaPack
-2. Copy `reaper/mixnote.lua` to your REAPER Scripts folder
+2. Copy `reaper/reamark.lua` to your REAPER Scripts folder
 3. In REAPER: Actions > Show Action List > Load ReaScript
 4. Optionally assign a keyboard shortcut
 
@@ -201,17 +201,17 @@ The included Lua script (`reaper/mixnote.lua`) connects REAPER directly to your 
 
 ### Calibration
 
-Mixnote comments use timecodes relative to the song start (0:00 = beginning of the song). In your REAPER project, the song might start at a different position (e.g., bar 5 = 8 seconds in).
+ReaMark comments use timecodes relative to the song start (0:00 = beginning of the song). In your REAPER project, the song might start at a different position (e.g., bar 5 = 8 seconds in).
 
 1. Place the REAPER edit cursor at the exact point where the song starts
 2. Click **Set from Cursor** in the script
-3. All timecodes now map correctly between Mixnote and REAPER
+3. All timecodes now map correctly between ReaMark and REAPER
 
 The offset is saved per song in the REAPER project file.
 
 ## Email Notifications
 
-Mixnote can send email notifications when new comments or replies are posted. See **[EMAIL_DELIVERABILITY.md](./EMAIL_DELIVERABILITY.md)** for complete setup instructions and troubleshooting.
+ReaMark can send email notifications when new comments or replies are posted. See **[EMAIL_DELIVERABILITY.md](./EMAIL_DELIVERABILITY.md)** for complete setup instructions and troubleshooting.
 
 **Quick Setup:**
 1. Go to Admin → Settings → Email
@@ -245,7 +245,7 @@ Mixnote can send email notifications when new comments or replies are posted. Se
 ## Project Structure
 
 ```
-mixnote/
+reamark/
 ├── backend/
 │   ├── Dockerfile
 │   ├── requirements.txt
@@ -268,7 +268,7 @@ mixnote/
 │   ├── Dockerfile
 │   └── nginx.conf
 ├── reaper/
-│   └── mixnote.lua           # REAPER integration script
+│   └── reamark.lua           # REAPER integration script
 ├── vst3/                     # VST3 plugin (JUCE/C++)
 │   ├── CMakeLists.txt
 │   ├── Source/               # Plugin source (Processor, Editor, API, Theme, Waveform, Comments)
@@ -315,7 +315,7 @@ GET    /api/versions/{version_id}/peaks              # Waveform peak data (JSON)
 
 ## License
 
-Mixnote is licensed under the **GNU Affero General Public License v3.0**
+ReaMark is licensed under the **GNU Affero General Public License v3.0**
 (AGPLv3) — see [`LICENSE`](LICENSE) and [`LICENSING.md`](LICENSING.md) for the
 rationale and the licenses of bundled components (JUCE, VST3 SDK).
 

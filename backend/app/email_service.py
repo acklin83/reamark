@@ -1,4 +1,4 @@
-"""Email notification service for Mixnote."""
+"""Email notification service for ReaMark."""
 
 import asyncio
 import logging
@@ -80,7 +80,7 @@ def _get_recipient_email(project: Project, settings: AppSettings) -> str | None:
 def _send_smtp(settings: AppSettings, to: str, subject: str, html_body: str):
     """Send via SMTP (blocking, run in thread)."""
     from_addr = settings.smtp_from_address or settings.smtp_username
-    from_name = settings.smtp_from_name or "Mixnote"
+    from_name = settings.smtp_from_name or "ReaMark"
 
     # Create multipart message with both HTML and plain-text alternatives
     msg = MIMEMultipart("alternative")
@@ -88,13 +88,13 @@ def _send_smtp(settings: AppSettings, to: str, subject: str, html_body: str):
     msg["From"] = f"{from_name} <{from_addr}>"
     msg["To"] = to
     msg["Date"] = formatdate(localtime=True)
-    msg["Message-ID"] = make_msgid(domain=from_addr.split('@')[-1] if '@' in from_addr else 'mixnote.local')
+    msg["Message-ID"] = make_msgid(domain=from_addr.split('@')[-1] if '@' in from_addr else 'reamark.local')
 
     # Add Reply-To header (important for deliverability)
     msg["Reply-To"] = settings.email_admin_address or from_addr
 
     # Anti-spam headers
-    msg["X-Mailer"] = "Mixnote"
+    msg["X-Mailer"] = "ReaMark"
     msg["X-Priority"] = "3"  # Normal priority
     msg["Importance"] = "Normal"
 
@@ -126,8 +126,8 @@ def _send_smtp(settings: AppSettings, to: str, subject: str, html_body: str):
 async def _send_sendgrid(settings: AppSettings, to: str, subject: str, html_body: str):
     """Send via SendGrid v3 REST API."""
     plain_text = _html_to_plaintext(html_body)
-    from_email = settings.smtp_from_address or "noreply@mixnote.app"
-    from_name = settings.smtp_from_name or "Mixnote"
+    from_email = settings.smtp_from_address or "noreply@reamark.app"
+    from_name = settings.smtp_from_name or "ReaMark"
 
     async with httpx.AsyncClient(timeout=60) as client:
         resp = await client.post(
@@ -161,7 +161,7 @@ async def _send_mailgun(settings: AppSettings, to: str, subject: str, html_body:
     """Send via Mailgun REST API."""
     domain = settings.email_api_domain
     plain_text = _html_to_plaintext(html_body)
-    from_name = settings.smtp_from_name or "Mixnote"
+    from_name = settings.smtp_from_name or "ReaMark"
     from_email = settings.smtp_from_address or f"noreply@{domain}"
 
     async with httpx.AsyncClient(timeout=60) as client:
@@ -305,7 +305,7 @@ async def _send_batched_notifications(project_id: str, base_url: str):
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;">
             {''.join(song_sections)}
             <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0 16px 0;">
-            <p style="font-size: 14px; margin: 0;"><a href="{base_url}/{project.share_link}" style="color: #6366f1; text-decoration: none;">In Mixnote öffnen &rarr;</a></p>
+            <p style="font-size: 14px; margin: 0;"><a href="{base_url}/{project.share_link}" style="color: #6366f1; text-decoration: none;">In ReaMark öffnen &rarr;</a></p>
         </div>'''
 
         await send_notification(settings, recipient, subject, body)
@@ -417,9 +417,9 @@ async def send_test_email(settings: AppSettings, to: str) -> str | None:
         await send_notification(
             settings,
             to,
-            "Mixnote Test-E-Mail",
+            "ReaMark Test-E-Mail",
             """<div style="font-family: -apple-system, sans-serif; padding: 20px; max-width: 400px; margin: 0 auto;">
-  <p style="font-size: 16px; font-weight: bold; color: #333; margin: 0 0 12px 0;">Mixnote</p>
+  <p style="font-size: 16px; font-weight: bold; color: #333; margin: 0 0 12px 0;">ReaMark</p>
   <p style="font-size: 14px; color: #333; margin: 0 0 8px 0;">E-Mail-Versand funktioniert! &#127881;</p>
   <p style="font-size: 12px; color: #888; margin: 0;">Provider: {}</p>
 </div>""".format(settings.email_provider),

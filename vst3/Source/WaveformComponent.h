@@ -1,9 +1,9 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
-#include "MixnoteModels.h"
+#include "ReaMarkModels.h"
 #include <vector>
 
-namespace mixnote {
+namespace reamark {
 
 class WaveformComponent : public juce::Component {
 public:
@@ -37,4 +37,4 @@ private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(WaveformComponent)
 };
 
-} // namespace mixnote
+} // namespace reamark
