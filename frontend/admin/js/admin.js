@@ -211,7 +211,8 @@ function renderVersionsList(versions) {
       </div>
       <div class="flex items-center gap-3">
         <a href="/api/audio/${v.id}" download="${esc(v.original_filename)}"
-           onclick="event.stopPropagation()" class="text-xs text-gray-400 hover:text-white transition">Download</a>
+           onclick="event.stopPropagation()" class="text-xs text-gray-400 hover:text-white transition"
+           title="${(currentSong && currentSong.downloadable === false) ? 'Clients cannot download this song — admin download always works' : 'Download'}">Download${(currentSong && currentSong.downloadable === false) ? ' <span class="text-gray-600">(admin)</span>' : ''}</a>
         <button onclick="event.stopPropagation(); renameVersion(${v.id}, '${escAttr(v.label)}')"
           class="text-xs text-gray-400 hover:text-white transition">&#9998;</button>
         <button onclick="event.stopPropagation(); deleteVersion(${v.id}, ${v.version_number})"
