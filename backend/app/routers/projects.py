@@ -33,6 +33,7 @@ def _enrich_songs(songs, db):
         )
         song_data = SongOut(
             id=s.id, title=s.title, position=s.position,
+            downloadable=s.downloadable,
             created_at=s.created_at, versions=s.versions,
             version_count=ver_count, comment_count=comment_count,
             open_count=open_count,
@@ -88,6 +89,32 @@ def stream_audio(
     version = db.query(Version).filter(Version.id == version_id).first()
     if version is None:
         raise HTTPException(status_code=404, detail="Version not found")
+    if not os.path.isfile(version.file_path):
+        raise HTTPException(status_code=404, detail="Audio file not found")
+
+    ext = os.path.splitext(version.file_path)[1].lower()
+    media_types = {".wav": "audio/wav", ".mp3": "audio/mpeg", ".flac": "audio/flac"}
+    media_type = media_types.get(ext, "application/octet-stream")
+
+    return FileResponse(
+        version.file_path,
+        media_type=media_type,
+        filename=version.original_filename,
+    )
+
+
+@router.get("/api/download/{version_id}")
+def download_audio(
+    version_id: int,
+    db: Session = Depends(get_db),
+):
+    """Client-facing download. Blocked when the song is not marked downloadable."""
+    version = db.query(Version).filter(Version.id == version_id).first()
+    if version is None:
+        raise HTTPException(status_code=404, detail="Version not found")
+    song = db.query(Song).filter(Song.id == version.song_id).first()
+    if song is None or not song.downloadable:
+        raise HTTPException(status_code=403, detail="Download disabled for this song")
     if not os.path.isfile(version.file_path):
         raise HTTPException(status_code=404, detail="Audio file not found")
 

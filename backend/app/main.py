@@ -45,12 +45,35 @@ def _migrate_db():
         "ALTER TABLE app_settings ADD COLUMN email_batch_delay_minutes INTEGER DEFAULT 5",
         "ALTER TABLE app_settings ADD COLUMN site_name TEXT DEFAULT 'ReaMark'",
         "ALTER TABLE app_settings ADD COLUMN favicon_path TEXT",
+        "ALTER TABLE songs ADD COLUMN downloadable BOOLEAN DEFAULT 1",
     ]
     for sql in migrations:
         try:
             conn.execute(sql)
         except sqlite3.OperationalError:
             pass  # Column already exists
+
+    # One-time re-theme to the studio_os palette: only overwrite colors that
+    # still hold the original hardcoded defaults, so any custom colors survive.
+    _recolor = [
+        ("accent_color", "#6366f1", "#f0b45f"),
+        ("dark_900", "#0f0f0f", "#14161a"),
+        ("dark_800", "#1a1a1a", "#1b1e24"),
+        ("dark_700", "#2a2a2a", "#22262e"),
+        ("dark_600", "#3a3a3a", "#2b303a"),
+        ("text_color", "#e5e7eb", "#e9ebf0"),
+        ("waveform_color", "#4b5563", "#4a515f"),
+        ("waveform_progress_color", "#6366f1", "#f0b45f"),
+        ("light_accent_color", "#4f46e5", "#c98a34"),
+        ("light_waveform_progress_color", "#4f46e5", "#c98a34"),
+    ]
+    for col, old, new in _recolor:
+        try:
+            conn.execute(
+                f"UPDATE app_settings SET {col} = ? WHERE {col} = ?", (new, old)
+            )
+        except sqlite3.OperationalError:
+            pass  # Column doesn't exist yet
     conn.commit()
     conn.close()
 

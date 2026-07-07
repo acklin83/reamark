@@ -39,6 +39,15 @@ async function loadAppSettings() {
   } catch { /* defaults */ }
 }
 
+// Pick a readable text color (dark or white) for a given background hex.
+function readableOn(hex) {
+  const h = (hex || '').replace('#', '');
+  if (h.length !== 6) return '#ffffff';
+  const lin = (x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); };
+  const L = 0.2126 * lin(parseInt(h.slice(0, 2), 16)) + 0.7152 * lin(parseInt(h.slice(2, 4), 16)) + 0.0722 * lin(parseInt(h.slice(4, 6), 16));
+  return L > 0.45 ? '#14161a' : '#ffffff';
+}
+
 function getThemeColors(s) {
   if (currentTheme === 'light') {
     return {
@@ -66,7 +75,8 @@ function applySettings(s) {
     .bg-dark-800 { background-color: ${c.bg800} !important; }
     .bg-dark-700 { background-color: ${c.bg700} !important; }
     .bg-dark-600 { background-color: ${c.bg600} !important; }
-    .bg-accent { background-color: ${c.accent} !important; }
+    .bg-accent { background-color: ${c.accent} !important; color: ${readableOn(c.accent)} !important; }
+    .bg-accent svg { color: ${readableOn(c.accent)} !important; }
     .text-accent { color: ${c.accent} !important; }
     .font-mono.text-accent { color: ${c.accent} !important; }
     .border-dark-700 { border-color: ${c.bg700} !important; }
@@ -77,6 +87,7 @@ function applySettings(s) {
     .hover\\:bg-dark-600:hover { background-color: ${c.bg600} !important; }
     .hover\\:bg-indigo-600:hover { background-color: ${c.accent} !important; filter: brightness(0.85); }
     .focus\\:border-accent:focus { border-color: ${c.accent} !important; }
+    input[type="checkbox"], input[type="range"] { accent-color: ${c.accent}; }
     ${isLight ? `
     .text-gray-200 { color: #1f2937 !important; }
     .text-gray-300 { color: #374151 !important; }
@@ -219,8 +230,9 @@ function renderVersionsList(versions) {
         <span class="text-sm">${esc(v.label)}</span>
       </div>
       <div class="flex items-center gap-3">
-        <a href="/api/audio/${v.id}" download="${esc(v.original_filename)}"
-           onclick="event.stopPropagation()" class="text-xs text-gray-400 hover:text-white transition">Download</a>
+        ${(currentSong && currentSong.downloadable === false) ? '' : `
+        <a href="/api/download/${v.id}" download="${esc(v.original_filename)}"
+           onclick="event.stopPropagation()" class="text-xs text-gray-400 hover:text-white transition">Download</a>`}
         <span class="text-xs text-gray-500">${formatDate(v.created_at)}</span>
       </div>
     </div>
@@ -264,7 +276,7 @@ function loadAudio(versionId, seekTo, wasPlaying) {
   ws = WaveSurfer.create({
     container: '#waveform',
     waveColor: (appSettings ? getThemeColors(appSettings).waveform : '#4b5563'),
-    progressColor: (appSettings ? getThemeColors(appSettings).waveformProgress : '#6366f1'),
+    progressColor: (appSettings ? getThemeColors(appSettings).waveformProgress : '#f0b45f'),
     cursorColor: (appSettings ? getThemeColors(appSettings).text : '#e5e7eb'), cursorWidth: 1, height: window.innerWidth < 768 ? 64 : 128,
     barWidth: 2, barGap: 1, barRadius: 2, normalize: true,
   });

@@ -31,6 +31,7 @@ from ..schemas import (
     SetupRequest,
     SongCreate,
     SongOut,
+    SongUpdate,
     TokenResponse,
     VersionOut,
 )
@@ -242,14 +243,17 @@ def upload_version(
 @router.put("/songs/{song_id}")
 def update_song(
     song_id: int,
-    req: SongCreate,
+    req: SongUpdate,
     _admin: AdminUser = Depends(get_current_admin),
     db: Session = Depends(get_db),
 ):
     song = db.query(Song).filter(Song.id == song_id).first()
     if song is None:
         raise HTTPException(status_code=404, detail="Song not found")
-    song.title = req.title
+    if req.title is not None:
+        song.title = req.title
+    if req.downloadable is not None:
+        song.downloadable = req.downloadable
     db.commit()
     return {"ok": True}
 

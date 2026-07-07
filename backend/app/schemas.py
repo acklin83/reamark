@@ -65,10 +65,16 @@ class SongCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
 
 
+class SongUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    downloadable: bool | None = None
+
+
 class SongOut(BaseModel):
     id: int
     title: str
     position: int
+    downloadable: bool = True
     created_at: datetime
     version_count: int = 0
     comment_count: int = 0

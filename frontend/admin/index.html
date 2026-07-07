@@ -12,8 +12,8 @@
       theme: {
         extend: {
           colors: {
-            dark: { 900: '#0f0f0f', 800: '#1a1a1a', 700: '#2a2a2a', 600: '#3a3a3a' },
-            accent: '#6366f1',
+            dark: { 900: '#14161a', 800: '#1b1e24', 700: '#22262e', 600: '#2b303a' },
+            accent: '#f0b45f',
           }
         }
       }
@@ -28,10 +28,11 @@
     .fade-in { animation: fadeIn 0.2s ease-in; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .comment-marker {
-      width: 3px; height: 100%; background: #f59e0b;
+      width: 3px; height: 100%; background: #f0b45f;
       position: absolute; top: 0; cursor: pointer; opacity: 0.8; z-index: 10;
     }
     .comment-marker:hover { opacity: 1; }
+    ::selection { background: #f0b45f; color: #14161a; }
     .touch-btn { display: inline-flex; align-items: center; justify-content: center; padding: 4px; }
     @media (max-width: 767px) {
       .touch-btn { min-width: 44px; min-height: 44px; }
@@ -153,7 +154,11 @@
       <button id="back-to-project" class="text-sm text-gray-400 hover:text-white mb-4 transition">&larr; Back to <span id="back-project-name"></span></button>
       <div class="flex items-center justify-between mb-4">
         <h2 id="song-title" class="text-xl font-bold cursor-pointer hover:text-accent transition" title="Click to rename"></h2>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-3">
+          <label class="flex items-center gap-1.5 text-sm text-gray-400 cursor-pointer select-none" title="Allow clients to download this song's versions">
+            <input type="checkbox" id="song-downloadable" class="accent-accent w-4 h-4">
+            Downloadable
+          </label>
           <button id="upload-version-btn" class="px-3 py-1.5 bg-dark-700 hover:bg-dark-600 rounded text-sm transition">+ Upload Version</button>
           <button id="delete-song-btn" class="text-sm text-red-400 hover:text-red-300 transition">Delete Song</button>
         </div>

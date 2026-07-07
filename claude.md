@@ -603,6 +603,17 @@ A ReaImGui-based script for managing ReaMark comments directly from REAPER.
 - **Infra:** GitHub-Repo `mixnote`→`reamark` umbenannt (alter Name 301-Redirect). ghcr-Images werden beim nächsten `v*`-Tag als `reamark-{backend,nginx}`. ReaPack: `ReaMark/ReaMark.lua` im `reaper-scripts`-Repo. **Live-Domain `mix.stoersender.ch` NICHT geändert** (würde Kunden-Share-Links brechen) — bleibt, bis Frank explizit umzieht.
 - **Live-Update für Frank:** `git pull` (Remote-URL ggf. neu) + `docker compose up -d --build`. Daten bleiben (mixnote.db + MIXNOTE_*-Fallback). site_name in der DB bleibt auf altem Wert bis manuell in Admin→Settings geändert.
 
+### 2026-07-07: studio_os-Palette + Per-Song Download-Toggle
+- **Design an studio_os angeglichen (Scope: Palette + Look, kein Layout-Umbau):** studio_os ist dunkel mit Amber-Akzent. Neue Defaults in `AppSettings` (models.py): accent `#f0b45f`, dark_900 `#14161a`, dark_800 `#1b1e24`, dark_700 `#22262e`, dark_600 `#2b303a`, text `#e9ebf0`, waveform `#4a515f`, waveform_progress `#f0b45f`, light_accent/light_waveform_progress `#c98a34`.
+  - **Wichtig:** Palette ist komplett datengesteuert — `applySettings()` in beiden JS-Files injiziert CSS mit `!important`, überschreibt die Tailwind-`dark`-Scale zur Laufzeit. Kein Markup umgeschrieben.
+  - **Schonende Migration** (main.py `_migrate_db`): `UPDATE app_settings SET <col>=<studio_os> WHERE <col>=<alter-default>` — überschreibt nur unveränderte Farben, Custom-Farben von Frank bleiben erhalten. Idempotent. → Frank bekommt den neuen Look beim nächsten Deploy automatisch, ohne dass eigene Settings verloren gehen.
+  - **Button-Kontrast:** heller Amber-Accent braucht dunklen Text auf gefüllten Buttons. Neuer `readableOn(hex)`-Helper (WCAG-Luminanz) in beiden JS-Files, injiziert `.bg-accent { color: … }`. Deckt jeden Accent robust ab. Zusätzlich `input[checkbox/range] { accent-color }` = Accent. Statische Tailwind-Fallbacks + `.comment-marker` + `::selection` in beiden `index.html` auf Amber.
+- **Per-Song Download-Toggle:** neues Feld `Song.downloadable` (Boolean, default True). Migration `ALTER TABLE songs ADD COLUMN downloadable BOOLEAN DEFAULT 1` (bestehende Songs bleiben downloadbar).
+  - Neuer Endpoint `GET /api/download/{version_id}` (projects.py): prüft `song.downloadable`, 403 wenn deaktiviert. **Streaming-Endpoint `/api/audio/{id}` bleibt unangetastet** (Playback muss immer gehen). Client-Download-Link zeigt jetzt auf `/api/download/…` und wird versteckt wenn `currentSong.downloadable === false`. **Admin behält direkten `/api/audio`-Download** (Admin darf immer).
+  - Admin-UI: „Downloadable"-Checkbox im Song-View-Header, speichert per `PUT /admin/songs/{id}` (jetzt `SongUpdate` statt `SongCreate`, beide Felder optional). `SongOut` + `_enrich_songs` um `downloadable` erweitert.
+- **Verifiziert:** Python-AST + `node --check` OK; Migration gegen simulierte Alt-Schema-DB getestet (Recolor greift, Custom-Farbe bleibt, downloadable-Default=1). **Noch nicht live gebootet** (Deps nur im Docker-Container) — Frank sollte nach `docker compose up -d --build` einmal Admin + Client prüfen.
+- **Files:** `backend/app/models.py`, `backend/app/main.py`, `backend/app/schemas.py`, `backend/app/routers/admin.py`, `backend/app/routers/projects.py`, `frontend/admin/index.html`, `frontend/admin/js/admin.js`, `frontend/client/index.html`, `frontend/client/js/client.js`
+
 ## Development Notes
 - Prefer simple, maintainable solutions over complex frameworks
 - Direct, efficient code - no unnecessary abstractions
