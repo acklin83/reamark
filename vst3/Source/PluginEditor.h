@@ -37,12 +37,10 @@ private:
     // --- Login section ---
     juce::Label serverLabel   { {}, "Server" };
     juce::TextEditor serverInput;
-    juce::Label userLabel     { {}, "User" };
-    juce::TextEditor userInput;
-    juce::Label passLabel     { {}, "Password" };
-    juce::TextEditor passInput;
-    juce::ToggleButton rememberCheck { "Remember me" };
-    juce::TextButton loginBtn       { "Login" };
+    juce::Label connectLabel  { {}, "Token" };
+    juce::TextEditor connectInput;
+    juce::Label nameLabel     { {}, "Name" };   // display name for comments (also the login form)
+    juce::TextButton loginBtn       { "Verbinden" };
     juce::TextButton logoutBtn      { "Logout" };
     juce::Label loginStatusLabel;
     juce::Label loginErrorLabel;

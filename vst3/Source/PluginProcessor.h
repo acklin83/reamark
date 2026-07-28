@@ -35,15 +35,13 @@ public:
 
     // Persistent settings
     juce::String serverUrl;
-    juce::String username;
+    juce::String connectToken;   // per-instance bearer (Studio OS → Settings → Integrationen)
     juce::String authorName;
-    juce::String savedPassword;
     juce::String lastShareLink;
-    bool rememberPassword = false;
     bool autoplayEnabled = true;
 
     // Per-song calibration offsets (songId -> offset seconds)
-    std::map<int, double> calibrationOffsets;
+    std::map<juce::String, double> calibrationOffsets;
 
 private:
     std::atomic<double> transportPosition { 0.0 };

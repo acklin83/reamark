@@ -22,7 +22,8 @@ public:
 
     // --- Auth ---
     using LoginCallback = std::function<void(bool success, const juce::String& token, const juce::String& error)>;
-    void login(const juce::String& username, const juce::String& password, LoginCallback callback);
+    // Connect with a per-instance connect token (static bearer). Verifies it against the server.
+    void login(const juce::String& connectToken, LoginCallback callback);
 
     // --- Projects ---
     using ProjectCallback = std::function<void(bool success, const Project& project, const juce::String& error)>;
@@ -33,28 +34,28 @@ public:
 
     // --- Comments ---
     using CommentsCallback = std::function<void(bool success, const std::vector<Comment>& comments, const juce::String& error)>;
-    void loadComments(const juce::String& shareLink, int versionId, CommentsCallback callback);
+    void loadComments(const juce::String& shareLink, const juce::String& versionId, CommentsCallback callback);
 
     using SimpleCallback = std::function<void(bool success, const juce::String& error)>;
-    void createComment(const juce::String& shareLink, int versionId, double timecode,
+    void createComment(const juce::String& shareLink, const juce::String& versionId, double timecode,
                        const juce::String& authorName, const juce::String& text, SimpleCallback callback);
 
-    void replyToComment(const juce::String& shareLink, int commentId,
+    void replyToComment(const juce::String& shareLink, const juce::String& commentId,
                         const juce::String& authorName, const juce::String& text, SimpleCallback callback);
 
-    void resolveComment(const juce::String& shareLink, int commentId, SimpleCallback callback);
+    void resolveComment(const juce::String& shareLink, const juce::String& commentId, SimpleCallback callback);
 
-    void updateComment(int commentId, const juce::String& text, SimpleCallback callback);
+    void updateComment(const juce::String& commentId, const juce::String& text, SimpleCallback callback);
 
-    void deleteComment(int commentId, SimpleCallback callback);
+    void deleteComment(const juce::String& commentId, SimpleCallback callback);
 
     // --- Versions ---
     using FavouriteCallback = std::function<void(bool success, bool isFavourite, const juce::String& error)>;
-    void toggleFavourite(int versionId, FavouriteCallback callback);
+    void toggleFavourite(const juce::String& versionId, FavouriteCallback callback);
 
     // --- Peaks ---
     using PeaksCallback = std::function<void(bool success, const std::vector<float>& peaks, double duration, const juce::String& error)>;
-    void loadPeaks(int versionId, PeaksCallback callback);
+    void loadPeaks(const juce::String& versionId, PeaksCallback callback);
 
 private:
     juce::String serverUrl;

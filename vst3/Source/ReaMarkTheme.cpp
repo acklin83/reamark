@@ -81,12 +81,14 @@ void ReaMarkLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height,
     g.setColour(Theme::bgBorder());
     g.drawRoundedRectangle(bounds.reduced(0.5f), 4.0f, 1.0f);
 
-    // Arrow
-    auto arrowZone = juce::Rectangle<float>((float)width - 20.0f, 0, 16.0f, (float)height);
+    // Arrow — a small centred caret. The old triangle spanned the full 16px zone, which
+    // read as too wide/flat; an 8×5 caret sits better next to the text.
+    auto cx = (float)width - 12.0f;
+    auto cy = (float)height * 0.5f;
     juce::Path arrow;
-    arrow.addTriangle(arrowZone.getX(), arrowZone.getCentreY() - 3.0f,
-                      arrowZone.getRight(), arrowZone.getCentreY() - 3.0f,
-                      arrowZone.getCentreX(), arrowZone.getCentreY() + 3.0f);
+    arrow.addTriangle(cx - 4.0f, cy - 2.5f,
+                      cx + 4.0f, cy - 2.5f,
+                      cx,        cy + 2.5f);
     g.setColour(Theme::textDim());
     g.fillPath(arrow);
 }

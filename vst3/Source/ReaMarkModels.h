@@ -5,15 +5,15 @@
 namespace reamark {
 
 struct Reply {
-    int id = 0;
+    juce::String id;
     juce::String authorName;
     juce::String text;
     juce::String createdAt;
 };
 
 struct Comment {
-    int id = 0;
-    int versionId = 0;
+    juce::String id;
+    juce::String versionId;
     double timecode = 0.0;
     juce::String authorName;
     juce::String text;
@@ -23,28 +23,28 @@ struct Comment {
 };
 
 struct Version {
-    int id = 0;
+    juce::String id;
     int versionNumber = 0;
     juce::String label;
     bool favourite = false;
 };
 
 struct Song {
-    int id = 0;
+    juce::String id;
     juce::String title;
     int position = 0;
     std::vector<Version> versions;
 };
 
 struct Project {
-    int id = 0;
+    juce::String id;
     juce::String title;
     juce::String shareLink;
     std::vector<Song> songs;
 };
 
 struct AdminProject {
-    int id = 0;
+    juce::String id;
     juce::String title;
     juce::String shareLink;
 };
@@ -53,7 +53,7 @@ struct AdminProject {
 
 inline Reply parseReply(const juce::var& v) {
     Reply r;
-    r.id = static_cast<int>(v.getProperty("id", 0));
+    r.id = v.getProperty("id", "").toString();
     r.authorName = v.getProperty("author_name", "").toString();
     r.text = v.getProperty("text", "").toString();
     r.createdAt = v.getProperty("created_at", "").toString();
@@ -62,8 +62,8 @@ inline Reply parseReply(const juce::var& v) {
 
 inline Comment parseComment(const juce::var& v) {
     Comment c;
-    c.id = static_cast<int>(v.getProperty("id", 0));
-    c.versionId = static_cast<int>(v.getProperty("version_id", 0));
+    c.id = v.getProperty("id", "").toString();
+    c.versionId = v.getProperty("version_id", "").toString();
     c.timecode = static_cast<double>(v.getProperty("timecode", 0.0));
     c.authorName = v.getProperty("author_name", "").toString();
     c.text = v.getProperty("text", "").toString();
@@ -79,7 +79,7 @@ inline Comment parseComment(const juce::var& v) {
 
 inline Version parseVersion(const juce::var& v) {
     Version ver;
-    ver.id = static_cast<int>(v.getProperty("id", 0));
+    ver.id = v.getProperty("id", "").toString();
     ver.versionNumber = static_cast<int>(v.getProperty("version_number", 0));
     ver.label = v.getProperty("label", "").toString();
     ver.favourite = static_cast<bool>(v.getProperty("favourite", false));
@@ -88,7 +88,7 @@ inline Version parseVersion(const juce::var& v) {
 
 inline Song parseSong(const juce::var& v) {
     Song s;
-    s.id = static_cast<int>(v.getProperty("id", 0));
+    s.id = v.getProperty("id", "").toString();
     s.title = v.getProperty("title", "").toString();
     s.position = static_cast<int>(v.getProperty("position", 0));
 
@@ -101,7 +101,7 @@ inline Song parseSong(const juce::var& v) {
 
 inline Project parseProject(const juce::var& v) {
     Project p;
-    p.id = static_cast<int>(v.getProperty("id", 0));
+    p.id = v.getProperty("id", "").toString();
     p.title = v.getProperty("title", "").toString();
     p.shareLink = v.getProperty("share_link", "").toString();
 
@@ -114,7 +114,7 @@ inline Project parseProject(const juce::var& v) {
 
 inline AdminProject parseAdminProject(const juce::var& v) {
     AdminProject p;
-    p.id = static_cast<int>(v.getProperty("id", 0));
+    p.id = v.getProperty("id", "").toString();
     p.title = v.getProperty("title", "").toString();
     p.shareLink = v.getProperty("share_link", "").toString();
     return p;

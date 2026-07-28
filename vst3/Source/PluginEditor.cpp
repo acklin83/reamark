@@ -12,22 +12,19 @@ ReaMarkEditor::ReaMarkEditor(ReaMarkProcessor& p)
     // Restore state from processor
     api.setServerUrl(processorRef.serverUrl);
     serverInput.setText(processorRef.serverUrl);
-    userInput.setText(processorRef.username);
-    authorInput.setText(processorRef.authorName.isNotEmpty() ? processorRef.authorName : processorRef.username);
-    passInput.setText(processorRef.savedPassword);
-    rememberCheck.setToggleState(processorRef.rememberPassword, juce::dontSendNotification);
+    connectInput.setText(processorRef.connectToken);
+    authorInput.setText(processorRef.authorName);
     autoplayCheck.setToggleState(processorRef.autoplayEnabled, juce::dontSendNotification);
 
     // --- Login section ---
-    for (auto* lbl : { &serverLabel, &userLabel, &passLabel }) {
+    for (auto* lbl : { &serverLabel, &connectLabel, &nameLabel }) {
         lbl->setColour(juce::Label::textColourId, Theme::textDim());
         addAndMakeVisible(lbl);
     }
-    passInput.setPasswordCharacter('*');
-    for (auto* editor : { &serverInput, &userInput, &passInput }) {
+    connectInput.setPasswordCharacter('*');
+    for (auto* editor : { &serverInput, &connectInput }) {
         addAndMakeVisible(editor);
     }
-    addAndMakeVisible(rememberCheck);
     addAndMakeVisible(loginBtn);
     addChildComponent(logoutBtn);
     addChildComponent(loginStatusLabel);
@@ -91,28 +88,28 @@ ReaMarkEditor::ReaMarkEditor(ReaMarkProcessor& p)
     commentList.onTimecodeClick = [this](double timecode) {
         seekTo(timecode);
     };
-    commentList.onResolve = [this](int commentId) {
+    commentList.onResolve = [this](const juce::String& commentId) {
         if (!loggedIn || activeShareLink.isEmpty()) return;
         api.resolveComment(activeShareLink, commentId, [this](bool ok, const juce::String& err) {
             if (ok) loadComments();
             else showError(err);
         });
     };
-    commentList.onDelete = [this](int commentId) {
+    commentList.onDelete = [this](const juce::String& commentId) {
         if (!loggedIn) return;
         api.deleteComment(commentId, [this](bool ok, const juce::String& err) {
             if (ok) loadComments();
             else showError(err);
         });
     };
-    commentList.onEdit = [this](int commentId, const juce::String& text) {
+    commentList.onEdit = [this](const juce::String& commentId, const juce::String& text) {
         if (!loggedIn) return;
         api.updateComment(commentId, text, [this](bool ok, const juce::String& err) {
             if (ok) loadComments();
             else showError(err);
         });
     };
-    commentList.onReply = [this](int commentId, const juce::String& text) {
+    commentList.onReply = [this](const juce::String& commentId, const juce::String& text) {
         if (activeShareLink.isEmpty()) return;
         api.replyToComment(activeShareLink, commentId, authorInput.getText().trim(), text,
             [this](bool ok, const juce::String& err) {
@@ -154,9 +151,9 @@ void ReaMarkEditor::resized() {
 
     if (!loggedIn) {
         // --- Login form ---
-        serverLabel.setVisible(true);  userLabel.setVisible(true);  passLabel.setVisible(true);
-        serverInput.setVisible(true);  userInput.setVisible(true);  passInput.setVisible(true);
-        rememberCheck.setVisible(true); loginBtn.setVisible(true);
+        serverLabel.setVisible(true);  connectLabel.setVisible(true);  nameLabel.setVisible(true);
+        serverInput.setVisible(true);  connectInput.setVisible(true);  authorInput.setVisible(true);
+        loginBtn.setVisible(true);
         logoutBtn.setVisible(false); loginStatusLabel.setVisible(false);
 
         auto row1 = area.removeFromTop(rowH);
@@ -165,19 +162,17 @@ void ReaMarkEditor::resized() {
         area.removeFromTop(spacing);
 
         auto row2 = area.removeFromTop(rowH);
-        userLabel.setBounds(row2.removeFromLeft(labelW));
-        userInput.setBounds(row2);
+        connectLabel.setBounds(row2.removeFromLeft(labelW));
+        connectInput.setBounds(row2);
+        area.removeFromTop(spacing);
+
+        auto rowName = area.removeFromTop(rowH);
+        nameLabel.setBounds(rowName.removeFromLeft(labelW));
+        authorInput.setBounds(rowName);
         area.removeFromTop(spacing);
 
         auto row3 = area.removeFromTop(rowH);
-        passLabel.setBounds(row3.removeFromLeft(labelW));
-        passInput.setBounds(row3);
-        area.removeFromTop(spacing);
-
-        auto row4 = area.removeFromTop(rowH);
-        rememberCheck.setBounds(row4.removeFromLeft(130));
-        row4.removeFromLeft(4);
-        loginBtn.setBounds(row4.removeFromLeft(70));
+        loginBtn.setBounds(row3.removeFromLeft(90));
         area.removeFromTop(spacing);
 
         loginErrorLabel.setBounds(area.removeFromTop(rowH));
@@ -188,14 +183,14 @@ void ReaMarkEditor::resized() {
         favouriteBtn.setVisible(false); offsetLabel.setVisible(false);
         setOffsetBtn.setVisible(false); autoplayCheck.setVisible(false);
         waveform.setVisible(false);
-        authorInput.setVisible(false); timecodeLabel.setVisible(false);
+        timecodeLabel.setVisible(false);
         commentInput.setVisible(false); addCommentBtn.setVisible(false);
         commentList.setVisible(false);
     } else {
         // --- Logged in header ---
-        serverLabel.setVisible(false); userLabel.setVisible(false); passLabel.setVisible(false);
-        serverInput.setVisible(false); userInput.setVisible(false); passInput.setVisible(false);
-        rememberCheck.setVisible(false); loginBtn.setVisible(false);
+        serverLabel.setVisible(false); connectLabel.setVisible(false); nameLabel.setVisible(false);
+        serverInput.setVisible(false); connectInput.setVisible(false);
+        loginBtn.setVisible(false);
         logoutBtn.setVisible(true); loginStatusLabel.setVisible(true);
         loginErrorLabel.setVisible(false);
 
@@ -288,33 +283,27 @@ void ReaMarkEditor::resized() {
 
 void ReaMarkEditor::doLogin() {
     auto server = serverInput.getText().trim();
-    auto user = userInput.getText().trim();
-    auto pass = passInput.getText();
+    auto token = connectInput.getText().trim();
 
-    if (server.isEmpty() || user.isEmpty()) {
-        loginErrorLabel.setText("Server and User required", juce::dontSendNotification);
+    if (server.isEmpty() || token.isEmpty()) {
+        loginErrorLabel.setText("Server und Token nötig", juce::dontSendNotification);
         return;
     }
 
     api.setServerUrl(server);
     loginErrorLabel.setText("", juce::dontSendNotification);
 
-    api.login(user, pass, [this, server, user, pass](bool ok, const juce::String& token, const juce::String& err) {
+    api.login(token, [this, server, token](bool ok, const juce::String& bearer, const juce::String& err) {
         if (ok) {
-            api.setJwtToken(token);
+            api.setJwtToken(bearer);
             loggedIn = true;
 
             // Save to processor
             processorRef.serverUrl = server;
-            processorRef.username = user;
-            if (processorRef.authorName.isEmpty())
-                processorRef.authorName = user;
-            processorRef.rememberPassword = rememberCheck.getToggleState();
-            if (processorRef.rememberPassword)
-                processorRef.savedPassword = pass;
+            processorRef.connectToken = token;
+            processorRef.authorName = authorInput.getText().trim();
 
-            loginStatusLabel.setText(">> " + user + "  " + server, juce::dontSendNotification);
-            authorInput.setText(processorRef.authorName);
+            loginStatusLabel.setText(">> " + server, juce::dontSendNotification);
 
             // Load admin projects
             api.loadAdminProjects([this](bool projectsOk, const std::vector<AdminProject>& projects, const juce::String& projectsErr) {
@@ -356,9 +345,6 @@ void ReaMarkEditor::doLogout() {
     selectedSongIdx = -1;
     selectedVersionIdx = -1;
     errorMsg = {};
-
-    if (!rememberCheck.getToggleState())
-        passInput.setText({});
 
     resized();
 }

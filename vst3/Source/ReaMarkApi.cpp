@@ -44,7 +44,10 @@ ReaMarkApi::HttpResponse ReaMarkApi::httpRequest(const juce::String& method,
                                                    const juce::String& endpoint,
                                                    const juce::String& body) {
     HttpResponse result;
-    auto url = juce::URL(serverUrl + endpoint);
+    // Every endpoint lives under the Studio OS /rmc compat prefix on the studio host
+    // (e.g. studio.example.com/rmc/admin/projects) — one place, so callers keep the
+    // bare /admin and /api paths.
+    auto url = juce::URL(serverUrl + "/rmc" + endpoint);
 
     if (body.isNotEmpty() && (method == "POST" || method == "PUT" || method == "PATCH"))
         url = url.withPOSTData(body);
@@ -91,25 +94,22 @@ ReaMarkApi::HttpResponse ReaMarkApi::httpDelete(const juce::String& endpoint) {
 // Auth
 // ---------------------------------------------------------------------------
 
-void ReaMarkApi::login(const juce::String& username, const juce::String& password, LoginCallback callback) {
-    threadPool.addJob([this, username, password, cb = std::move(callback)]() {
-        auto body = makeJsonObject({
-            { "username", username },
-            { "password", password }
-        });
+void ReaMarkApi::login(const juce::String& connectToken, LoginCallback callback) {
+    threadPool.addJob([this, connectToken, cb = std::move(callback)]() {
+        // The connect token IS the bearer — no login round-trip, no 24h expiry. Verify it
+        // by listing projects (the first authenticated admin call); a 200 means this
+        // instance accepts the token.
+        setJwtToken(connectToken);
+        auto resp = httpGet("/admin/projects");
 
-        auto resp = httpPost("/admin/auth/login", body);
-
-        juce::MessageManager::callAsync([resp, cb]() {
+        juce::MessageManager::callAsync([this, resp, connectToken, cb]() {
             if (resp.statusCode == 200) {
-                auto data = juce::JSON::parse(resp.body);
-                auto token = data.getProperty("access_token", "").toString();
-                if (token.isNotEmpty())
-                    cb(true, token, {});
-                else
-                    cb(false, {}, "Invalid response");
+                cb(true, connectToken, {});
             } else {
-                cb(false, {}, "Login failed (HTTP " + juce::String(resp.statusCode) + ")");
+                setJwtToken({});
+                cb(false, {}, (resp.statusCode == 401 || resp.statusCode == 403)
+                       ? "Connect token rejected"
+                       : "Connection failed (HTTP " + juce::String(resp.statusCode) + ")");
             }
         });
     });
@@ -157,9 +157,9 @@ void ReaMarkApi::loadAdminProjects(AdminProjectsCallback callback) {
 // Comments
 // ---------------------------------------------------------------------------
 
-void ReaMarkApi::loadComments(const juce::String& shareLink, int versionId, CommentsCallback callback) {
+void ReaMarkApi::loadComments(const juce::String& shareLink, const juce::String& versionId, CommentsCallback callback) {
     threadPool.addJob([this, shareLink, versionId, cb = std::move(callback)]() {
-        auto resp = httpGet("/api/projects/" + shareLink + "/comments?version_id=" + juce::String(versionId));
+        auto resp = httpGet("/api/projects/" + shareLink + "/comments?version_id=" + versionId);
 
         juce::MessageManager::callAsync([resp, cb]() {
             if (resp.statusCode == 200) {
@@ -176,7 +176,7 @@ void ReaMarkApi::loadComments(const juce::String& shareLink, int versionId, Comm
     });
 }
 
-void ReaMarkApi::createComment(const juce::String& shareLink, int versionId, double timecode,
+void ReaMarkApi::createComment(const juce::String& shareLink, const juce::String& versionId, double timecode,
                                 const juce::String& authorName, const juce::String& text, SimpleCallback callback) {
     threadPool.addJob([this, shareLink, versionId, timecode, authorName, text, cb = std::move(callback)]() {
         auto body = makeJsonObject({
@@ -195,7 +195,7 @@ void ReaMarkApi::createComment(const juce::String& shareLink, int versionId, dou
     });
 }
 
-void ReaMarkApi::replyToComment(const juce::String& shareLink, int commentId,
+void ReaMarkApi::replyToComment(const juce::String& shareLink, const juce::String& commentId,
                                  const juce::String& authorName, const juce::String& text, SimpleCallback callback) {
     threadPool.addJob([this, shareLink, commentId, authorName, text, cb = std::move(callback)]() {
         auto body = makeJsonObject({
@@ -203,7 +203,7 @@ void ReaMarkApi::replyToComment(const juce::String& shareLink, int commentId,
             { "text", text }
         });
 
-        auto resp = httpPost("/api/projects/" + shareLink + "/comments/" + juce::String(commentId) + "/reply", body);
+        auto resp = httpPost("/api/projects/" + shareLink + "/comments/" + commentId + "/reply", body);
 
         juce::MessageManager::callAsync([resp, cb]() {
             cb(resp.statusCode == 201, resp.statusCode != 201
@@ -212,9 +212,9 @@ void ReaMarkApi::replyToComment(const juce::String& shareLink, int commentId,
     });
 }
 
-void ReaMarkApi::resolveComment(const juce::String& shareLink, int commentId, SimpleCallback callback) {
+void ReaMarkApi::resolveComment(const juce::String& shareLink, const juce::String& commentId, SimpleCallback callback) {
     threadPool.addJob([this, shareLink, commentId, cb = std::move(callback)]() {
-        auto resp = httpPatch("/api/projects/" + shareLink + "/comments/" + juce::String(commentId) + "/resolve");
+        auto resp = httpPatch("/api/projects/" + shareLink + "/comments/" + commentId + "/resolve");
 
         juce::MessageManager::callAsync([resp, cb]() {
             cb(resp.statusCode == 200, resp.statusCode != 200
@@ -223,13 +223,13 @@ void ReaMarkApi::resolveComment(const juce::String& shareLink, int commentId, Si
     });
 }
 
-void ReaMarkApi::updateComment(int commentId, const juce::String& text, SimpleCallback callback) {
+void ReaMarkApi::updateComment(const juce::String& commentId, const juce::String& text, SimpleCallback callback) {
     threadPool.addJob([this, commentId, text, cb = std::move(callback)]() {
         auto body = makeJsonObject({
             { "text", text }
         });
 
-        auto resp = httpPut("/admin/comments/" + juce::String(commentId), body);
+        auto resp = httpPut("/admin/comments/" + commentId, body);
 
         juce::MessageManager::callAsync([resp, cb]() {
             cb(resp.statusCode == 200, resp.statusCode != 200
@@ -238,9 +238,9 @@ void ReaMarkApi::updateComment(int commentId, const juce::String& text, SimpleCa
     });
 }
 
-void ReaMarkApi::deleteComment(int commentId, SimpleCallback callback) {
+void ReaMarkApi::deleteComment(const juce::String& commentId, SimpleCallback callback) {
     threadPool.addJob([this, commentId, cb = std::move(callback)]() {
-        auto resp = httpDelete("/admin/comments/" + juce::String(commentId));
+        auto resp = httpDelete("/admin/comments/" + commentId);
 
         juce::MessageManager::callAsync([resp, cb]() {
             bool ok = resp.statusCode == 200 || resp.statusCode == 204;
@@ -253,9 +253,9 @@ void ReaMarkApi::deleteComment(int commentId, SimpleCallback callback) {
 // Versions
 // ---------------------------------------------------------------------------
 
-void ReaMarkApi::toggleFavourite(int versionId, FavouriteCallback callback) {
+void ReaMarkApi::toggleFavourite(const juce::String& versionId, FavouriteCallback callback) {
     threadPool.addJob([this, versionId, cb = std::move(callback)]() {
-        auto resp = httpPatch("/admin/versions/" + juce::String(versionId) + "/favourite");
+        auto resp = httpPatch("/admin/versions/" + versionId + "/favourite");
 
         juce::MessageManager::callAsync([resp, cb]() {
             if (resp.statusCode == 200) {
@@ -272,9 +272,9 @@ void ReaMarkApi::toggleFavourite(int versionId, FavouriteCallback callback) {
 // Peaks
 // ---------------------------------------------------------------------------
 
-void ReaMarkApi::loadPeaks(int versionId, PeaksCallback callback) {
+void ReaMarkApi::loadPeaks(const juce::String& versionId, PeaksCallback callback) {
     threadPool.addJob([this, versionId, cb = std::move(callback)]() {
-        auto resp = httpGet("/api/versions/" + juce::String(versionId) + "/peaks");
+        auto resp = httpGet("/api/versions/" + versionId + "/peaks");
 
         juce::MessageManager::callAsync([resp, cb]() {
             if (resp.statusCode == 200) {

@@ -13,17 +13,17 @@ public:
 
     void setComment(const Comment& comment, bool isAdmin);
     void setExpanded(bool replyOpen, bool editOpen);
-    int getDesiredHeight() const;
+    int getDesiredHeight(int cardWidth) const;
 
     void paint(juce::Graphics& g) override;
     void resized() override;
 
     // Callbacks
     std::function<void(double timecode)> onTimecodeClick;
-    std::function<void(int commentId)> onResolve;
-    std::function<void(int commentId)> onDelete;
-    std::function<void(int commentId, const juce::String& text)> onEdit;
-    std::function<void(int commentId, const juce::String& text)> onReply;
+    std::function<void(const juce::String& commentId)> onResolve;
+    std::function<void(const juce::String& commentId)> onDelete;
+    std::function<void(const juce::String& commentId, const juce::String& text)> onEdit;
+    std::function<void(const juce::String& commentId, const juce::String& text)> onReply;
 
 private:
     Comment comment;
@@ -79,10 +79,10 @@ public:
 
     // Callbacks (forwarded from cards)
     std::function<void(double timecode)> onTimecodeClick;
-    std::function<void(int commentId)> onResolve;
-    std::function<void(int commentId)> onDelete;
-    std::function<void(int commentId, const juce::String& text)> onEdit;
-    std::function<void(int commentId, const juce::String& text)> onReply;
+    std::function<void(const juce::String& commentId)> onResolve;
+    std::function<void(const juce::String& commentId)> onDelete;
+    std::function<void(const juce::String& commentId, const juce::String& text)> onEdit;
+    std::function<void(const juce::String& commentId, const juce::String& text)> onReply;
     std::function<void()> onRefresh;
 
     void resized() override;

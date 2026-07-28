@@ -3,6 +3,19 @@
 
 namespace reamark {
 
+// Height a block of text needs when wrapped to `width` — so a comment card grows to
+// show the whole comment instead of clipping it to one line.
+static int wrappedTextHeight(const juce::String& text, int width, float fontHeight) {
+    if (text.isEmpty() || width <= 4)
+        return (int) fontHeight + 2;
+    juce::AttributedString as;
+    as.setText(text);
+    as.setFont(juce::FontOptions(fontHeight));
+    juce::TextLayout layout;
+    layout.createLayout(as, (float) width);
+    return juce::jmax((int) fontHeight + 2, (int) (layout.getHeight() + 2.5f));
+}
+
 // ===========================================================================
 // CommentCard
 // ===========================================================================
@@ -46,6 +59,8 @@ CommentCard::CommentCard() {
 
     authorLabel.setColour(juce::Label::textColourId, Theme::text());
     textLabel.setColour(juce::Label::textColourId, Theme::text());
+    textLabel.setFont(juce::FontOptions(13.0f));
+    textLabel.setJustificationType(juce::Justification::topLeft);
     textLabel.setMinimumHorizontalScale(1.0f);
 
     replyInput.setColour(juce::TextEditor::backgroundColourId, Theme::bgInput());
@@ -152,11 +167,15 @@ void CommentCard::rebuildReplyDisplays() {
     }
 }
 
-int CommentCard::getDesiredHeight() const {
+int CommentCard::getDesiredHeight(int cardWidth) const {
     int h = 8;  // top padding
     h += 24;    // header row (timecode + author + buttons)
     h += 4;     // spacing
-    h += 20;    // text
+
+    if (editOpen)
+        h += 30 + 2 + 22;   // edit input + spacing + buttons
+    else
+        h += wrappedTextHeight(comment.text, cardWidth - 16, 13.0f);   // full wrapped comment
 
     // Replies
     for (size_t i = 0; i < replyDisplays.size(); ++i)
@@ -166,9 +185,6 @@ int CommentCard::getDesiredHeight() const {
 
     if (replyOpen)
         h += 30;  // reply input
-
-    if (editOpen)
-        h += 60;  // edit input + buttons
 
     h += 8;  // bottom padding
     return h;
@@ -221,7 +237,8 @@ void CommentCard::resized() {
         editCancelBtn.setVisible(false);
         textLabel.setVisible(true);
 
-        textLabel.setBounds(area.removeFromTop(20));
+        int th = wrappedTextHeight(comment.text, area.getWidth(), 13.0f);
+        textLabel.setBounds(area.removeFromTop(th));
     }
 
     // Replies
@@ -364,7 +381,7 @@ void CommentListComponent::layoutCards() {
     int y = 4;
 
     for (auto& card : cards) {
-        int h = card->getDesiredHeight();
+        int h = card->getDesiredHeight(w);
         card->setBounds(0, y, w, h);
         y += h + 4;
     }

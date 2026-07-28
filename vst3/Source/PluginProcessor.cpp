@@ -64,19 +64,15 @@ juce::AudioProcessorEditor* ReaMarkProcessor::createEditor() {
 void ReaMarkProcessor::getStateInformation(juce::MemoryBlock& destData) {
     auto state = std::make_unique<juce::DynamicObject>();
     state->setProperty("serverUrl", serverUrl);
-    state->setProperty("username", username);
+    state->setProperty("connectToken", connectToken);
     state->setProperty("authorName", authorName);
     state->setProperty("lastShareLink", lastShareLink);
-    state->setProperty("rememberPassword", rememberPassword);
     state->setProperty("autoplayEnabled", autoplayEnabled);
-
-    if (rememberPassword)
-        state->setProperty("savedPassword", savedPassword);
 
     // Calibration offsets
     auto offsets = std::make_unique<juce::DynamicObject>();
     for (auto& [songId, offset] : calibrationOffsets)
-        offsets->setProperty(juce::String(songId), offset);
+        offsets->setProperty(songId, offset);
     state->setProperty("calibrationOffsets", juce::var(offsets.release()));
 
     auto jsonStr = juce::JSON::toString(juce::var(state.release()));
@@ -88,20 +84,16 @@ void ReaMarkProcessor::setStateInformation(const void* data, int sizeInBytes) {
     auto state = juce::JSON::parse(jsonStr);
 
     serverUrl      = state.getProperty("serverUrl", "").toString();
-    username       = state.getProperty("username", "").toString();
+    connectToken   = state.getProperty("connectToken", "").toString();
     authorName     = state.getProperty("authorName", "").toString();
     lastShareLink  = state.getProperty("lastShareLink", "").toString();
-    rememberPassword = static_cast<bool>(state.getProperty("rememberPassword", false));
     autoplayEnabled  = static_cast<bool>(state.getProperty("autoplayEnabled", true));
-
-    if (rememberPassword)
-        savedPassword = state.getProperty("savedPassword", "").toString();
 
     // Calibration offsets
     auto offsetsVar = state.getProperty("calibrationOffsets", juce::var());
     if (auto* obj = offsetsVar.getDynamicObject()) {
         for (auto& prop : obj->getProperties()) {
-            int songId = prop.name.toString().getIntValue();
+            juce::String songId = prop.name.toString();
             double offset = static_cast<double>(prop.value);
             calibrationOffsets[songId] = offset;
         }
