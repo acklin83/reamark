@@ -1,6 +1,6 @@
 -- @description ReaMark Comments
 -- @author Störsender-Studio
--- @version 1.0
+-- @version 2.0.0
 -- @provides [main] .
 -- @link GitHub https://github.com/acklin83/reamark
 -- @changelog
@@ -210,9 +210,13 @@ local reaper_project_id = get_project_id()
 local is_linked = false
 local linked_uuid = ""
 
+-- No hardcoded server — each studio enters its own Studio OS URL (e.g.
+-- https://studio.example.com). The client talks to that host's /rmc API.
 local server_url = reaper.GetExtState("ReaMark", "server_url")
 local author_name = reaper.GetExtState("ReaMark", "author_name")
-local username = reaper.GetExtState("ReaMark", "username")
+-- The per-instance connect token (Studio OS → Einstellungen → Mix Notes). Replaces the old
+-- admin login: a static bearer, no username/password, no 24h re-login.
+local connect_token = reaper.GetExtState("ReaMark", "connect_token")
 local share_link_input = reaper.GetExtState("ReaMark", "last_share_link")
 
 if reaper_project_id then
@@ -223,13 +227,7 @@ if reaper_project_id then
   end
 end
 
--- No hardcoded defaults - user must configure on first run
-if author_name == "" and username ~= "" then author_name = username end
-
-local password = reaper.GetExtState("ReaMark", "password")
-if password == nil then password = "" end
-local remember_password = (password ~= "")
-local jwt_token = ""
+local auth_token = ""
 local logged_in = false
 local login_error = ""
 
@@ -267,31 +265,31 @@ local autoplay_enabled = reaper.GetExtState("ReaMark", "autoplay") ~= "false"
 -- Theme colors (matching ReaMark website dark theme)
 ---------------------------------------------------------------------------
 local C = {
-  -- Backgrounds (4-level hierarchy like website)
-  bg_body     = 0x0F0F0FFF,  -- #0f0f0f
-  bg_card     = 0x1A1A1AFF,  -- #1a1a1a
-  bg_input    = 0x2A2A2AFF,  -- #2a2a2a
-  bg_border   = 0x3A3A3AFF,  -- #3a3a3a
+  -- Backgrounds — Studio OS tokens (--bg / --panel / --panel-2 / --line-strong)
+  bg_body     = 0x14161AFF,  -- #14161a  --bg
+  bg_card     = 0x1B1E24FF,  -- #1b1e24  --panel
+  bg_input    = 0x22262EFF,  -- #22262e  --panel-2
+  bg_border   = 0x3A4150FF,  -- #3a4150  --line-strong
 
-  -- Accent (Indigo)
-  accent      = 0x6366F1FF,  -- #6366f1
-  accent_hover = 0x5558E8FF,
-  accent_dim  = 0x6366F140,  -- 25% opacity
+  -- Accent — Studio OS amber (--amber)
+  accent      = 0xF0B45FFF,  -- #f0b45f  --amber
+  accent_hover = 0xC98A34FF, -- amber pressed (studio btn gradient end)
+  accent_dim  = 0xF0B45F40,  -- 25% opacity
 
-  -- Text
-  text        = 0xE5E7EBFF,  -- #e5e7eb
-  text_dim    = 0x9CA3AFFF,  -- #9ca3af
-  text_muted  = 0x6B7280FF,  -- #6b7280
+  -- Text — Studio OS (--text / --dim / --mute)
+  text        = 0xE9EBF0FF,  -- #e9ebf0  --text
+  text_dim    = 0x9AA2B1FF,  -- #9aa2b1  --dim
+  text_muted  = 0x868E9DFF,  -- #868e9d  --mute
 
-  -- Status
-  green       = 0x4ADE80FF,  -- #4ade80
-  amber       = 0xF59E0BFF,  -- #f59e0b
-  red         = 0xEF4444FF,  -- #ef4444
-  yellow      = 0xFBBF24FF,  -- #fbbf24
+  -- Status — Studio OS (--green / --amber / --red)
+  green       = 0x5FD39AFF,  -- #5fd39a  --green
+  amber       = 0xF0B45FFF,  -- #f0b45f  --amber (open)
+  red         = 0xF07A7AFF,  -- #f07a7a  --red
+  yellow      = 0xF0B45FFF,  -- favourite star = amber
 
   -- Comment card backgrounds
-  card_open   = 0x1E233380,  -- subtle blue tint
-  card_solved = 0x1A2A1A60,  -- subtle green tint
+  card_open   = 0x2C241380,  -- amber tint (--amber-bg)
+  card_solved = 0x14261D60,  -- green tint (--green-bg)
 }
 
 ---------------------------------------------------------------------------
@@ -316,11 +314,11 @@ local function apply_theme()
   -- Buttons
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(),         C.accent)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(),  C.accent_hover)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(),   0x4F46E5FF)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(),   0xC98A34FF)
   -- Headers
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Header(),         C.accent_dim)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderHovered(),  0x6366F160)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderActive(),   0x6366F180)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderHovered(),  0xF0B45F30)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderActive(),   0xF0B45F50)
   -- Tabs
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Tab(),            C.bg_card)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_TabHovered(),     C.accent)
@@ -381,13 +379,11 @@ end
 local function save_state()
   reaper.SetExtState("ReaMark", "server_url", server_url, true)
   reaper.SetExtState("ReaMark", "author_name", author_name, true)
-  reaper.SetExtState("ReaMark", "username", username, true)
+  reaper.SetExtState("ReaMark", "connect_token", connect_token, true)
   reaper.SetExtState("ReaMark", "last_share_link", share_link_input, true)
-  if remember_password then
-    reaper.SetExtState("ReaMark", "password", password, true)
-  else
-    reaper.DeleteExtState("ReaMark", "password", true)
-  end
+  -- Clean up credentials from the old login-based client, if present.
+  reaper.DeleteExtState("ReaMark", "username", true)
+  reaper.DeleteExtState("ReaMark", "password", true)
   reaper.SetExtState("ReaMark", "autoplay", tostring(autoplay_enabled), true)
 end
 
@@ -432,7 +428,7 @@ local function api_load_comments()
   local ver = song and song.versions and song.versions[selected_version_idx]
   if not ver then comments = {}; return end
 
-  local url = server_url .. "/api/projects/" .. share_link .. "/comments?version_id=" .. tostring(ver.id)
+  local url = server_url .. "/rmc/api/projects/" .. share_link .. "/comments?version_id=" .. tostring(ver.id)
   local status, resp = http_request("GET", url)
   if status == 200 then
     comments = json.decode(resp) or {}
@@ -458,7 +454,7 @@ local function api_load_peaks()
   local song = songs[selected_song_idx]
   local ver = song and song.versions and song.versions[selected_version_idx]
   if not ver then return end
-  local url = server_url .. "/api/versions/" .. tostring(ver.id) .. "/peaks"
+  local url = server_url .. "/rmc/api/versions/" .. tostring(ver.id) .. "/peaks"
   local status, resp = http_request("GET", url)
   if status == 200 then
     local data = json.decode(resp)
@@ -473,7 +469,7 @@ local function api_load_project()
   error_msg = ""
   loading = true
   share_link_input = extract_share_code(share_link_input)
-  local url = server_url .. "/api/projects/" .. share_link_input
+  local url = server_url .. "/rmc/api/projects/" .. share_link_input
   local status, resp = http_request("GET", url)
   if status == 200 then
     project_data = json.decode(resp)
@@ -505,7 +501,7 @@ local function api_load_project()
 end
 
 local function api_load_admin_projects()
-  if not logged_in or jwt_token == "" then return end
+  if not logged_in or auth_token == "" then return end
   project_data = nil
   songs = {}
   selected_song_idx = 0
@@ -513,8 +509,8 @@ local function api_load_admin_projects()
   comments = {}
   selected_project_idx = 0
 
-  local url = server_url .. "/admin/projects"
-  local status, resp = http_request("GET", url, nil, jwt_token)
+  local url = server_url .. "/rmc/admin/projects"
+  local status, resp = http_request("GET", url, nil, auth_token)
   if status == 200 then
     admin_projects = json.decode(resp) or {}
     if reaper_project_id then
@@ -537,22 +533,24 @@ end
 
 local function api_login()
   login_error = ""
-  local url = server_url .. "/admin/auth/login"
-  local body = json.encode({username = username, password = password})
-  local status, resp = http_request("POST", url, body)
+  if server_url == "" or connect_token == "" then
+    login_error = "Server-URL und Connect-Token nötig"
+    return
+  end
+  -- No login round-trip: the connect token IS the bearer. Verify it by listing projects
+  -- (the first authenticated admin call); a 200 means the token is accepted by this instance.
+  auth_token = connect_token
+  local status, resp = http_request("GET", server_url .. "/rmc/admin/projects", nil, auth_token)
   if status == 200 then
-    local data = json.decode(resp)
-    if data and data.access_token then
-      jwt_token = data.access_token
-      logged_in = true
-      author_name = username
-      save_state()
-      api_load_admin_projects()
-    else
-      login_error = "Invalid response"
-    end
+    logged_in = true
+    save_state()
+    api_load_admin_projects()   -- re-fetches + restores the last-selected project
+  elseif status == 401 or status == 403 then
+    auth_token = ""
+    login_error = "Connect-Token abgelehnt — in Studio OS neu erzeugen"
   else
-    login_error = "Login failed (HTTP " .. tostring(status) .. ")"
+    auth_token = ""
+    login_error = "Verbindung fehlgeschlagen (HTTP " .. tostring(status) .. ")"
   end
 end
 
@@ -561,7 +559,7 @@ local function api_create_comment(timecode, text)
   local ver = song and song.versions and song.versions[selected_version_idx]
   if not ver then return end
 
-  local url = server_url .. "/api/projects/" .. share_link .. "/comments"
+  local url = server_url .. "/rmc/api/projects/" .. share_link .. "/comments"
   local body = json.encode({
     version_id = ver.id,
     timecode = timecode,
@@ -577,7 +575,7 @@ local function api_create_comment(timecode, text)
 end
 
 local function api_reply(comment_id, text)
-  local url = server_url .. "/api/projects/" .. share_link .. "/comments/" .. tostring(comment_id) .. "/reply"
+  local url = server_url .. "/rmc/api/projects/" .. share_link .. "/comments/" .. tostring(comment_id) .. "/reply"
   local body = json.encode({
     author_name = author_name,
     text = text,
@@ -596,8 +594,8 @@ local function api_toggle_favourite()
   local ver = song and song.versions and song.versions[selected_version_idx]
   if not ver then return end
 
-  local url = server_url .. "/admin/versions/" .. tostring(ver.id) .. "/favourite"
-  local status, resp = http_request("PATCH", url, nil, jwt_token)
+  local url = server_url .. "/rmc/admin/versions/" .. tostring(ver.id) .. "/favourite"
+  local status, resp = http_request("PATCH", url, nil, auth_token)
   if status == 200 then
     local data = json.decode(resp)
     if data then
@@ -615,7 +613,7 @@ local function api_refresh_project()
   if share_link == "" then return end
   local cur_song_idx = selected_song_idx
   local cur_ver_idx = selected_version_idx
-  local url = server_url .. "/api/projects/" .. share_link
+  local url = server_url .. "/rmc/api/projects/" .. share_link
   local status, resp = http_request("GET", url)
   if status == 200 then
     project_data = json.decode(resp)
@@ -627,8 +625,8 @@ local function api_refresh_project()
 end
 
 local function api_resolve(comment_id)
-  local url = server_url .. "/api/projects/" .. share_link .. "/comments/" .. tostring(comment_id) .. "/resolve"
-  local status, resp = http_request("PATCH", url, nil, jwt_token)
+  local url = server_url .. "/rmc/api/projects/" .. share_link .. "/comments/" .. tostring(comment_id) .. "/resolve"
+  local status, resp = http_request("PATCH", url, nil, auth_token)
   if status == 200 then
     api_load_comments()
   else
@@ -638,9 +636,9 @@ end
 
 local function api_update_comment(comment_id, text)
   if not logged_in then return end
-  local url = server_url .. "/admin/comments/" .. tostring(comment_id)
+  local url = server_url .. "/rmc/admin/comments/" .. tostring(comment_id)
   local body = json.encode({text = text})
-  local status, resp = http_request("PUT", url, body, jwt_token)
+  local status, resp = http_request("PUT", url, body, auth_token)
   if status == 200 then
     api_load_comments()
   else
@@ -650,8 +648,8 @@ end
 
 local function api_delete_comment(comment_id)
   if not logged_in then return end
-  local url = server_url .. "/admin/comments/" .. tostring(comment_id)
-  local status, resp = http_request("DELETE", url, nil, jwt_token)
+  local url = server_url .. "/rmc/admin/comments/" .. tostring(comment_id)
+  local status, resp = http_request("DELETE", url, nil, auth_token)
   if status == 204 or status == 200 then
     api_load_comments()
   else
@@ -664,12 +662,11 @@ end
 ---------------------------------------------------------------------------
 local function draw_login_section()
   if logged_in then
-    reaper.ImGui_TextColored(ctx, C.green, ">> " .. username)
+    reaper.ImGui_TextColored(ctx, C.green, ">> " .. (author_name ~= "" and author_name or "verbunden"))
     reaper.ImGui_SameLine(ctx)
     if sec_button("Logout") then
       logged_in = false
-      jwt_token = ""
-      if not remember_password then password = "" end
+      auth_token = ""
       -- Reset view to initial state
       project_data = nil
       songs = {}
@@ -700,23 +697,19 @@ local function draw_login_section()
     local changed
     changed, server_url = reaper.ImGui_InputText(ctx, "##server_url", server_url)
 
-    reaper.ImGui_TextColored(ctx, C.text_dim, "User")
+    reaper.ImGui_TextColored(ctx, C.text_dim, "Token")
     reaper.ImGui_SameLine(ctx, label_w)
     reaper.ImGui_SetNextItemWidth(ctx, -1)
-    changed, username = reaper.ImGui_InputText(ctx, "##username", username)
+    changed, connect_token = reaper.ImGui_InputText(ctx, "##connect_token", connect_token, reaper.ImGui_InputTextFlags_Password())
 
-    reaper.ImGui_TextColored(ctx, C.text_dim, "Password")
+    reaper.ImGui_TextColored(ctx, C.text_dim, "Name")
     reaper.ImGui_SameLine(ctx, label_w)
     reaper.ImGui_SetNextItemWidth(ctx, -1)
-    changed, password = reaper.ImGui_InputText(ctx, "##password", password, reaper.ImGui_InputTextFlags_Password())
+    changed, author_name = reaper.ImGui_InputText(ctx, "##author_name", author_name)
 
     reaper.ImGui_Spacing(ctx)
 
-    local rem_changed
-    rem_changed, remember_password = reaper.ImGui_Checkbox(ctx, "Remember me", remember_password)
-    if rem_changed then save_state() end
-    reaper.ImGui_SameLine(ctx)
-    if reaper.ImGui_Button(ctx, "Login##login_btn") then
+    if reaper.ImGui_Button(ctx, "Verbinden##login_btn") then
       api_login()
     end
 
