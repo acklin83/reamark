@@ -1,23 +1,22 @@
--- @description ReaMark Comments
--- @author Störsender-Studio
+-- @description Mix Notes
+-- @author Studio OS
 -- @version 2.0.0
 -- @provides [main] .
 -- @link GitHub https://github.com/acklin83/reamark
 -- @changelog
 --   Initial ReaPack release
 -- @about
---   # ReaMark Comments
+--   # Mix Notes
 --
---   REAPER integration for the ReaMark audio review platform. Load a project
---   by share link, view the waveform with comment markers, and create, reply
---   to, resolve, edit or delete timeline comments directly from REAPER.
+--   REAPER integration for the Studio OS mix-review loop. Connect to your studio
+--   with the server URL + connect token, view the waveform with comment markers,
+--   and create, reply to, resolve, edit or delete timeline comments from REAPER.
 --
---   Requires the ReaImGui extension (install via ReaPack). Configure your
---   ReaMark server URL and log in inside the script.
+--   Requires the ReaImGui extension (install via ReaPack). Server URL + connect
+--   token are under Studio OS → Settings → Integrations → Mix Client.
 --
--- ReaMark Comments v2 - REAPER Integration Script
+-- Mix Notes v2 - REAPER integration for Studio OS
 -- Requires ReaImGui (install via ReaPack)
--- Connects to ReaMark API for comment management
 -- Styled to match ReaMark website dark theme
 --
 -- Usage: Run from REAPER Actions list
@@ -187,7 +186,7 @@ end
 ---------------------------------------------------------------------------
 -- State
 ---------------------------------------------------------------------------
-local ctx = reaper.ImGui_CreateContext('ReaMark Comments')
+local ctx = reaper.ImGui_CreateContext('Mix Notes')
 local FONT_SIZE = 14
 
 local function hash_string(str)
@@ -870,10 +869,14 @@ local function draw_waveform_section()
 
   reaper.ImGui_Spacing(ctx)
 
-  -- Waveform dimensions
-  local wf_h = 50
+  -- Waveform dimensions. A dark strip at the top carries the comment-marker heads, so the
+  -- (semantic) marker colours never sit on the per-tenant accent waveform.
+  local head_strip = 12
+  local wf_h = 50 + head_strip
   local wf_w = reaper.ImGui_GetContentRegionAvail(ctx)
   local wx, wy = reaper.ImGui_GetCursorScreenPos(ctx)
+  local bar_top = wy + head_strip
+  local bar_h = wf_h - head_strip
 
   -- Invisible button for click detection
   reaper.ImGui_InvisibleButton(ctx, "##waveform", wf_w, wf_h)
@@ -888,7 +891,7 @@ local function draw_waveform_section()
   local peak_count = #waveform_peaks
   local draw_bars = math.floor(math.min(wf_w, peak_count))
   local bar_w = wf_w / draw_bars
-  local center_y = wy + wf_h / 2
+  local center_y = bar_top + bar_h / 2
   local samples_per_bar = peak_count / draw_bars
 
   for i = 0, draw_bars - 1 do
@@ -902,7 +905,7 @@ local function draw_waveform_section()
       end
     end
     local x = wx + i * bar_w
-    local h = peak * (wf_h * 0.45)
+    local h = peak * (bar_h * 0.45)
     if h > 0.5 then
       reaper.ImGui_DrawList_AddRectFilled(dl,
         x, center_y - h,
@@ -921,8 +924,11 @@ local function draw_waveform_section()
     if c.timecode and c.timecode >= 0 and waveform_duration > 0 and c.timecode <= waveform_duration then
       local mx = wx + (c.timecode / waveform_duration) * wf_w
       local mcol = c.solved and C.green or C.amber
-      reaper.ImGui_DrawList_AddLine(dl, mx, wy, mx, wy + wf_h, mcol, 2)
-      reaper.ImGui_DrawList_AddCircleFilled(dl, mx, wy + 5, 4, mcol)
+      -- A pin in the dark strip pointing down at the exact spot — no line through the
+      -- waveform (that read as a break), colour never touches the accent.
+      local pcy = wy + head_strip / 2 - 1
+      reaper.ImGui_DrawList_AddTriangleFilled(dl, mx - 3, pcy, mx + 3, pcy, mx, bar_top, mcol)
+      reaper.ImGui_DrawList_AddCircleFilled(dl, mx, pcy, 4, mcol)
 
       -- Check hover (±6px)
       if is_hovered and math.abs(mouse_x - mx) < 6 then
@@ -951,11 +957,11 @@ local function draw_waveform_section()
 
   if waveform_duration > 0 and rel_pos >= 0 and rel_pos <= waveform_duration then
     local px = wx + (rel_pos / waveform_duration) * wf_w
-    reaper.ImGui_DrawList_AddLine(dl, px, wy, px, wy + wf_h, 0xFFFFFFFF, 2)
+    reaper.ImGui_DrawList_AddLine(dl, px, bar_top, px, wy + wf_h, 0xFFFFFFFF, 2)
     reaper.ImGui_DrawList_AddTriangleFilled(dl,
-      px, wy,
-      px - 5, wy - 6,
-      px + 5, wy - 6,
+      px, bar_top,
+      px - 5, bar_top - 6,
+      px + 5, bar_top - 6,
       0xFFFFFFFF)
   end
 
@@ -1221,7 +1227,7 @@ local function loop()
   apply_theme()
   reaper.ImGui_SetNextWindowSize(ctx, 420, 700, reaper.ImGui_Cond_FirstUseEver())
   reaper.ImGui_SetNextWindowSizeConstraints(ctx, 420, 300, 9999, 9999)
-  local visible, open = reaper.ImGui_Begin(ctx, 'ReaMark', true)
+  local visible, open = reaper.ImGui_Begin(ctx, 'Mix Notes', true)
 
   if visible then
     draw_login_section()

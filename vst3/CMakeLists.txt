@@ -31,11 +31,13 @@ FetchContent_MakeAvailable(JUCE)
 
 # Plugin target
 juce_add_plugin(ReaMarkPlugin
-    COMPANY_NAME            "Stoersender"
+    # Display name / vendor are white-label neutral. The manufacturer + plugin CODES stay
+    # (Stss/Stmx) — they are the DAW plugin identity; changing them orphans existing sessions.
+    COMPANY_NAME            "Studio OS"
     PLUGIN_MANUFACTURER_CODE Stss
     PLUGIN_CODE              Stmx
     FORMATS                  VST3
-    PRODUCT_NAME             "ReaMark"
+    PRODUCT_NAME             "Mix Notes"
     IS_SYNTH                 FALSE
     NEEDS_MIDI_INPUT         FALSE
     NEEDS_MIDI_OUTPUT        FALSE

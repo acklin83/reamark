@@ -53,9 +53,11 @@ void WaveformComponent::paint(juce::Graphics& g) {
         return;
     }
 
-    float wfW = bounds.getWidth();
-    float wfH = bounds.getHeight();
-    float centreY = bounds.getY() + wfH * 0.5f;
+    const float headStrip = 12.0f;                      // top strip for the marker pins —
+    auto  wfBounds = bounds.withTrimmedTop(headStrip);   // keeps the coloured pins off the
+    float wfW = wfBounds.getWidth();                     // (per-tenant) accent waveform
+    float wfH = wfBounds.getHeight();
+    float centreY = wfBounds.getY() + wfH * 0.5f;
 
     // Downsample peaks to pixel width
     int peakCount = static_cast<int>(peaks.size());
@@ -88,11 +90,14 @@ void WaveformComponent::paint(juce::Graphics& g) {
             float mx = bounds.getX() + timecodeToX(c.timecode);
             auto markerCol = c.solved ? Theme::green() : Theme::amber();
 
+            // A pin in the dark strip that points down at the exact spot. NO line through the
+            // waveform (that read as a "break"), and the colour never touches the accent.
+            float cy = bounds.getY() + headStrip * 0.5f - 1.0f;
+            juce::Path pin;
+            pin.addTriangle(mx - 3.0f, cy, mx + 3.0f, cy, mx, wfBounds.getY());
             g.setColour(markerCol);
-            g.drawLine(mx, bounds.getY(), mx, bounds.getBottom(), 2.0f);
-
-            // Circle at top
-            g.fillEllipse(mx - 4.0f, bounds.getY() + 1.0f, 8.0f, 8.0f);
+            g.fillPath(pin);
+            g.fillEllipse(mx - 4.0f, cy - 4.5f, 8.0f, 8.0f);
         }
     }
 
@@ -102,13 +107,13 @@ void WaveformComponent::paint(juce::Graphics& g) {
         float px = bounds.getX() + timecodeToX(relPos);
 
         g.setColour(juce::Colours::white);
-        g.drawLine(px, bounds.getY(), px, bounds.getBottom(), 2.0f);
+        g.drawLine(px, wfBounds.getY(), px, wfBounds.getBottom(), 2.0f);
 
         // Triangle at top
         juce::Path tri;
-        tri.addTriangle(px - 5.0f, bounds.getY() - 6.0f,
-                        px + 5.0f, bounds.getY() - 6.0f,
-                        px,        bounds.getY());
+        tri.addTriangle(px - 5.0f, wfBounds.getY() - 6.0f,
+                        px + 5.0f, wfBounds.getY() - 6.0f,
+                        px,        wfBounds.getY());
         g.fillPath(tri);
     }
 

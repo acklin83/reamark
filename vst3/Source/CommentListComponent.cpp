@@ -156,6 +156,8 @@ void CommentCard::rebuildReplyDisplays() {
         rd.textLabel = std::make_unique<juce::Label>("", r.text);
         rd.textLabel->setColour(juce::Label::textColourId, Theme::text());
         rd.textLabel->setFont(juce::FontOptions(13.0f));
+        rd.textLabel->setJustificationType(juce::Justification::topLeft);
+        rd.textLabel->setMinimumHorizontalScale(1.0f);
         addAndMakeVisible(*rd.textLabel);
 
         rd.authorLabel = std::make_unique<juce::Label>("", "  -- " + r.authorName);
@@ -178,8 +180,8 @@ int CommentCard::getDesiredHeight(int cardWidth) const {
         h += wrappedTextHeight(comment.text, cardWidth - 16, 13.0f);   // full wrapped comment
 
     // Replies
-    for (size_t i = 0; i < replyDisplays.size(); ++i)
-        h += 34;  // reply text + author
+    for (auto& r : comment.replies)
+        h += 4 + wrappedTextHeight(r.text, cardWidth - 16 - 12, 13.0f) + 16;  // spacing + wrapped text + author
 
     h += 24;    // reply button row
 
@@ -242,10 +244,12 @@ void CommentCard::resized() {
     }
 
     // Replies
-    for (auto& rd : replyDisplays) {
+    for (size_t i = 0; i < replyDisplays.size(); ++i) {
+        auto& rd = replyDisplays[i];
         area.removeFromTop(4);
-        auto replyArea = area.removeFromTop(30).withTrimmedLeft(12);
-        rd.textLabel->setBounds(replyArea.removeFromTop(16));
+        int rth = wrappedTextHeight(comment.replies[i].text, area.getWidth() - 12, 13.0f);
+        auto replyArea = area.removeFromTop(rth + 16).withTrimmedLeft(12);
+        rd.textLabel->setBounds(replyArea.removeFromTop(rth));
         rd.authorLabel->setBounds(replyArea);
     }
 

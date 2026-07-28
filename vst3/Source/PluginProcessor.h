@@ -28,6 +28,9 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
+    // Persist server / connectToken / authorName to the per-user global settings file.
+    void saveGlobalSettings();
+
     // Transport info for the editor
     double getTransportPositionSeconds() const { return transportPosition.load(); }
     bool isTransportPlaying() const { return transportPlaying.load(); }

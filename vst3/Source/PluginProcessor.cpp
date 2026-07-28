@@ -1,15 +1,37 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+// Per-user global settings (server + connect token + display name). Kept out of the DAW
+// project state on purpose: a shared .rpp must never carry the studio's connect token.
+static juce::PropertiesFile& globalSettings() {
+    static juce::PropertiesFile props(
+        juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+            .getChildFile("Studio OS").getChildFile("MixClient.settings"),
+        juce::PropertiesFile::Options());
+    return props;
+}
+
 ReaMarkProcessor::ReaMarkProcessor()
     : AudioProcessor(BusesProperties()
           .withInput("Input",  juce::AudioChannelSet::stereo(), true)
           .withOutput("Output", juce::AudioChannelSet::stereo(), true)) {
+    auto& s = globalSettings();
+    serverUrl    = s.getValue("serverUrl");
+    connectToken = s.getValue("connectToken");
+    authorName   = s.getValue("authorName");
+}
+
+void ReaMarkProcessor::saveGlobalSettings() {
+    auto& s = globalSettings();
+    s.setValue("serverUrl",    serverUrl);
+    s.setValue("connectToken", connectToken);
+    s.setValue("authorName",   authorName);
+    s.saveIfNeeded();
 }
 
 ReaMarkProcessor::~ReaMarkProcessor() {}
 
-const juce::String ReaMarkProcessor::getName() const { return "ReaMark"; }
+const juce::String ReaMarkProcessor::getName() const { return "Mix Notes"; }
 bool ReaMarkProcessor::acceptsMidi() const  { return false; }
 bool ReaMarkProcessor::producesMidi() const { return false; }
 bool ReaMarkProcessor::isMidiEffect() const { return false; }
@@ -63,9 +85,7 @@ juce::AudioProcessorEditor* ReaMarkProcessor::createEditor() {
 
 void ReaMarkProcessor::getStateInformation(juce::MemoryBlock& destData) {
     auto state = std::make_unique<juce::DynamicObject>();
-    state->setProperty("serverUrl", serverUrl);
-    state->setProperty("connectToken", connectToken);
-    state->setProperty("authorName", authorName);
+    // server / connectToken / authorName live in globalSettings(), not here.
     state->setProperty("lastShareLink", lastShareLink);
     state->setProperty("autoplayEnabled", autoplayEnabled);
 
@@ -83,9 +103,7 @@ void ReaMarkProcessor::setStateInformation(const void* data, int sizeInBytes) {
     auto jsonStr = juce::String::fromUTF8(static_cast<const char*>(data), sizeInBytes);
     auto state = juce::JSON::parse(jsonStr);
 
-    serverUrl      = state.getProperty("serverUrl", "").toString();
-    connectToken   = state.getProperty("connectToken", "").toString();
-    authorName     = state.getProperty("authorName", "").toString();
+    // server / connectToken / authorName come from globalSettings() (loaded in the ctor).
     lastShareLink  = state.getProperty("lastShareLink", "").toString();
     autoplayEnabled  = static_cast<bool>(state.getProperty("autoplayEnabled", true));
 

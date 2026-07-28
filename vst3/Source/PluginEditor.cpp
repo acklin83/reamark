@@ -298,10 +298,11 @@ void ReaMarkEditor::doLogin() {
             api.setJwtToken(bearer);
             loggedIn = true;
 
-            // Save to processor
+            // Save to processor + the per-user global settings file (not the .rpp).
             processorRef.serverUrl = server;
             processorRef.connectToken = token;
             processorRef.authorName = authorInput.getText().trim();
+            processorRef.saveGlobalSettings();
 
             loginStatusLabel.setText(">> " + server, juce::dontSendNotification);
 
