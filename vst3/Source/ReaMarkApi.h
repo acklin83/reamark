@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_core/juce_core.h>
 #include <juce_events/juce_events.h>
+#include <juce_graphics/juce_graphics.h>   // juce::Colour (per-tenant accent)
 #include "ReaMarkModels.h"
 #include <functional>
 
@@ -56,6 +57,10 @@ public:
     // --- Peaks ---
     using PeaksCallback = std::function<void(bool success, const std::vector<float>& peaks, double duration, const juce::String& error)>;
     void loadPeaks(const juce::String& versionId, PeaksCallback callback);
+
+    // --- Branding (per-tenant accent from GET {server}/api/studio; native, no /rmc, no auth) ---
+    using BrandingCallback = std::function<void(bool success, juce::Colour accent)>;
+    void fetchBranding(BrandingCallback callback);
 
 private:
     juce::String serverUrl;

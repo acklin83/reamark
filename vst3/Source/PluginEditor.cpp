@@ -305,6 +305,15 @@ void ReaMarkEditor::doLogin() {
 
             loginStatusLabel.setText(">> " + server, juce::dontSendNotification);
 
+            // Pull this studio's brand accent (per-tenant white-label) and re-theme.
+            api.fetchBranding([this](bool brandOk, juce::Colour accent) {
+                if (brandOk) {
+                    reamark::Theme::setAccent(accent);
+                    reamarkLnf.applyAccentColours();
+                    repaint();
+                }
+            });
+
             // Load admin projects
             api.loadAdminProjects([this](bool projectsOk, const std::vector<AdminProject>& projects, const juce::String& projectsErr) {
                 if (projectsOk) {

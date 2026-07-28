@@ -292,4 +292,39 @@ void ReaMarkApi::loadPeaks(const juce::String& versionId, PeaksCallback callback
     });
 }
 
+// ---------------------------------------------------------------------------
+// Branding (per-tenant accent)
+// ---------------------------------------------------------------------------
+
+void ReaMarkApi::fetchBranding(BrandingCallback callback) {
+    threadPool.addJob([this, cb = std::move(callback)]() {
+        // /api/studio is a native Studio OS public endpoint — no /rmc prefix, no auth. Build
+        // the URL directly rather than via httpRequest (which prepends /rmc).
+        auto url = juce::URL(serverUrl + "/api/studio");
+        auto options = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inAddress)
+                           .withConnectionTimeoutMs(10000);
+
+        int status = 0;
+        juce::String body;
+        if (auto stream = url.createInputStream(options)) {
+            if (auto* ws = dynamic_cast<juce::WebInputStream*>(stream.get()))
+                status = ws->getStatusCode();
+            body = stream->readEntireStreamAsString();
+        }
+
+        bool ok = false;
+        juce::Colour accent;
+        if (status == 200) {
+            auto hex = juce::JSON::parse(body).getProperty("accent", "").toString().trim();
+            if (hex.startsWithChar('#')) hex = hex.substring(1);
+            if (hex.length() == 6) {
+                accent = juce::Colour((juce::uint32) 0xFF000000u | (juce::uint32) hex.getHexValue32());
+                ok = true;
+            }
+        }
+
+        juce::MessageManager::callAsync([ok, accent, cb]() { cb(ok, accent); });
+    });
+}
+
 } // namespace reamark

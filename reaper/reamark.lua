@@ -265,23 +265,24 @@ local autoplay_enabled = reaper.GetExtState("ReaMark", "autoplay") ~= "false"
 -- Theme colors (matching ReaMark website dark theme)
 ---------------------------------------------------------------------------
 local C = {
-  -- Backgrounds — Studio OS tokens (--bg / --panel / --panel-2 / --line-strong)
-  bg_body     = 0x14161AFF,  -- #14161a  --bg
-  bg_card     = 0x1B1E24FF,  -- #1b1e24  --panel
-  bg_input    = 0x22262EFF,  -- #22262e  --panel-2
-  bg_border   = 0x3A4150FF,  -- #3a4150  --line-strong
+  -- Backgrounds — Studio OS tokens (studio.css :root: --bg / --panel / --panel-2 / --line-strong)
+  bg_body     = 0x0B0D10FF,  -- #0b0d10  --bg
+  bg_card     = 0x111419FF,  -- #111419  --panel
+  bg_input    = 0x171B21FF,  -- #171b21  --panel-2
+  bg_border   = 0x3B4450FF,  -- #3b4450  --line-strong
 
-  -- Accent — Studio OS amber (--amber)
-  accent      = 0xF0B45FFF,  -- #f0b45f  --amber
-  accent_hover = 0xC98A34FF, -- amber pressed (studio btn gradient end)
-  accent_dim  = 0xF0B45F40,  -- 25% opacity
+  -- Accent — the studio's brand colour (--tide, default petrol). Per-tenant: overwritten
+  -- from GET {server}/api/studio in fetch_branding().
+  accent      = 0x3FD9C8FF,  -- #3fd9c8  --tide
+  accent_hover = 0x33AEA0FF, -- petrol, darker
+  accent_dim  = 0x3FD9C840,  -- 25% opacity
 
   -- Text — Studio OS (--text / --dim / --mute)
-  text        = 0xE9EBF0FF,  -- #e9ebf0  --text
-  text_dim    = 0x9AA2B1FF,  -- #9aa2b1  --dim
+  text        = 0xF5F7FBFF,  -- #f5f7fb  --text
+  text_dim    = 0xADB4C2FF,  -- #adb4c2  --dim
   text_muted  = 0x868E9DFF,  -- #868e9d  --mute
 
-  -- Status — Studio OS (--green / --amber / --red)
+  -- Status (fixed semantics) — --green / --amber (open) / --red
   green       = 0x5FD39AFF,  -- #5fd39a  --green
   amber       = 0xF0B45FFF,  -- #f0b45f  --amber (open)
   red         = 0xF07A7AFF,  -- #f07a7a  --red
@@ -314,11 +315,11 @@ local function apply_theme()
   -- Buttons
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(),         C.accent)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(),  C.accent_hover)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(),   0xC98A34FF)
-  -- Headers
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(),   C.accent_hover)
+  -- Headers (accent tint, follows the per-tenant accent)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Header(),         C.accent_dim)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderHovered(),  0xF0B45F30)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderActive(),   0xF0B45F50)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderHovered(),  C.accent_dim)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderActive(),   C.accent_dim)
   -- Tabs
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Tab(),            C.bg_card)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_TabHovered(),     C.accent)
@@ -531,6 +532,26 @@ local function api_load_admin_projects()
   end
 end
 
+-- Per-tenant brand accent from GET {server}/api/studio (native Studio OS endpoint, no /rmc,
+-- no auth). Overwrites the accent in C so the next frame paints in the studio's colour.
+local function fetch_branding()
+  if server_url == "" then return end
+  local status, resp = http_request("GET", server_url .. "/api/studio", nil, nil)
+  if status ~= 200 then return end
+  local ok, data = pcall(json.decode, resp)
+  if not ok or type(data) ~= "table" or type(data.accent) ~= "string" then return end
+  local hex = data.accent:gsub("#", "")
+  if #hex ~= 6 then return end
+  local n = tonumber(hex, 16)
+  if not n then return end
+  C.accent     = n * 256 + 0xFF     -- 0xRRGGBBAA
+  C.accent_dim = n * 256 + 0x40     -- 25% alpha
+  local r = math.floor(n / 65536) % 256
+  local g = math.floor(n / 256) % 256
+  local b = n % 256
+  C.accent_hover = math.floor(r * 0.8) * 16777216 + math.floor(g * 0.8) * 65536 + math.floor(b * 0.8) * 256 + 0xFF
+end
+
 local function api_login()
   login_error = ""
   if server_url == "" or connect_token == "" then
@@ -544,6 +565,7 @@ local function api_login()
   if status == 200 then
     logged_in = true
     save_state()
+    fetch_branding()            -- per-tenant accent
     api_load_admin_projects()   -- re-fetches + restores the last-selected project
   elseif status == 401 or status == 403 then
     auth_token = ""

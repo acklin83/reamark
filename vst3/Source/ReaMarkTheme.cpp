@@ -2,6 +2,17 @@
 
 namespace reamark {
 
+// --- Per-tenant accent ------------------------------------------------------
+// Default is the Studio OS brand colour (--tide petrol #3fd9c8); overridden per studio
+// via Theme::setAccent() once GET /api/studio returns.
+namespace Theme {
+    static juce::Colour g_accent { 0xFF3FD9C8 };
+    juce::Colour accent()      { return g_accent; }
+    juce::Colour accentHover() { return g_accent.darker(0.2f); }
+    juce::Colour accentDim()   { return g_accent.withAlpha(0.25f); }
+    void setAccent(juce::Colour c) { g_accent = c; }
+}
+
 ReaMarkLookAndFeel::ReaMarkLookAndFeel() {
     // Window / general
     setColour(juce::ResizableWindow::backgroundColourId, Theme::bgBody());
@@ -10,12 +21,9 @@ ReaMarkLookAndFeel::ReaMarkLookAndFeel() {
     setColour(juce::TextEditor::backgroundColourId,    Theme::bgInput());
     setColour(juce::TextEditor::textColourId,          Theme::text());
     setColour(juce::TextEditor::outlineColourId,       Theme::bgBorder());
-    setColour(juce::TextEditor::focusedOutlineColourId, Theme::accent());
-    setColour(juce::TextEditor::highlightColourId,     Theme::accentDim());
     setColour(juce::CaretComponent::caretColourId,     Theme::text());
 
     // TextButton
-    setColour(juce::TextButton::buttonColourId,   Theme::accent());
     setColour(juce::TextButton::textColourOnId,   Theme::text());
     setColour(juce::TextButton::textColourOffId,  Theme::text());
 
@@ -28,7 +36,6 @@ ReaMarkLookAndFeel::ReaMarkLookAndFeel() {
     // PopupMenu
     setColour(juce::PopupMenu::backgroundColourId,         Theme::bgCard());
     setColour(juce::PopupMenu::textColourId,               Theme::text());
-    setColour(juce::PopupMenu::highlightedBackgroundColourId, Theme::accent());
     setColour(juce::PopupMenu::highlightedTextColourId,    Theme::text());
 
     // ScrollBar
@@ -40,8 +47,17 @@ ReaMarkLookAndFeel::ReaMarkLookAndFeel() {
 
     // ToggleButton (Checkbox)
     setColour(juce::ToggleButton::textColourId, Theme::text());
-    setColour(juce::ToggleButton::tickColourId, Theme::accent());
     setColour(juce::ToggleButton::tickDisabledColourId, Theme::textMuted());
+
+    applyAccentColours();
+}
+
+void ReaMarkLookAndFeel::applyAccentColours() {
+    setColour(juce::TextEditor::focusedOutlineColourId,       Theme::accent());
+    setColour(juce::TextEditor::highlightColourId,            Theme::accentDim());
+    setColour(juce::TextButton::buttonColourId,               Theme::accent());
+    setColour(juce::PopupMenu::highlightedBackgroundColourId, Theme::accent());
+    setColour(juce::ToggleButton::tickColourId,               Theme::accent());
 }
 
 void ReaMarkLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button,
