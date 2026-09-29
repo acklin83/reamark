@@ -1,10 +1,11 @@
 -- @description Mix Notes
 -- @author Studio OS
--- @version 2.0.0
+-- @version 2.1.0
 -- @provides [main] .
 -- @link GitHub https://github.com/acklin83/reamark
 -- @changelog
---   Initial ReaPack release
+--   Look of the new Studio OS design: versions as chips with open notes, filter as views,
+--   timecode as a pill, played part of the waveform in the studio colour
 -- @about
 --   # Mix Notes
 --
@@ -264,71 +265,79 @@ local autoplay_enabled = reaper.GetExtState("ReaMark", "autoplay") ~= "false"
 -- Theme colors (matching ReaMark website dark theme)
 ---------------------------------------------------------------------------
 local C = {
-  -- Backgrounds — Studio OS tokens (studio.css :root: --bg / --panel / --panel-2 / --line-strong)
-  bg_body     = 0x0B0D10FF,  -- #0b0d10  --bg
-  bg_card     = 0x111419FF,  -- #111419  --panel
-  bg_input    = 0x171B21FF,  -- #171b21  --panel-2
-  bg_border   = 0x3B4450FF,  -- #3b4450  --line-strong
+  -- Studio OS design tokens, Theme „Console+" (studio.css :root, Stand 29.09.2026)
+  bg_body     = 0x020304FF,  -- #020304  --bg
+  bg_card     = 0x121A27FF,  -- #121a27  --panel
+  bg_panel2   = 0x1A2439FF,  -- #1a2439  --panel-2 (Nebenknopf)
+  bg_panel3   = 0x243149FF,  -- #243149  --panel-3 (Nebenknopf, Hover)
+  bg_input    = 0x020203FF,  -- #020203  --sunken (Eingabefelder)
+  line        = 0x1E2836FF,  -- #1e2836  --line
+  bg_border   = 0x5F7BA0FF,  -- #5f7ba0  --line-strong
+  wave_idle   = 0x5E6777FF,  -- #5e6777  --wave-idle
 
-  -- Accent — the studio's brand colour (--tide, default petrol). Per-tenant: overwritten
-  -- from GET {server}/api/studio in fetch_branding().
-  accent      = 0x3FD9C8FF,  -- #3fd9c8  --tide
-  accent_hover = 0x33AEA0FF, -- petrol, darker
-  accent_dim  = 0x3FD9C840,  -- 25% opacity
+  -- Akzent: die Farbe des Studios. Steht dort der Standard (#3fd9c8), gilt das Petrol des
+  -- Themes (--tide #11ffe5), genau wie im Web (frontend/src/app/brand.js). fetch_branding().
+  accent      = 0x11FFE5FF,  -- #11ffe5  --tide
+  accent_hover = 0x33FFEAFF, -- etwas heller (.btn:hover)
+  accent_dim  = 0x11FFE51A,  -- --tide-bg (10 %)
+  accent_line = 0x11FFE54D,  -- --tide-line (30 %)
+  on_accent   = 0x020304FF,  -- --on-tide: Text auf Petrol
 
-  -- Text — Studio OS (--text / --dim / --mute)
-  text        = 0xF5F7FBFF,  -- #f5f7fb  --text
-  text_dim    = 0xADB4C2FF,  -- #adb4c2  --dim
-  text_muted  = 0x868E9DFF,  -- #868e9d  --mute
+  -- Text (--text / --dim / --mute)
+  text        = 0xF6F8FCFF,
+  text_dim    = 0xAEB6C4FF,
+  text_muted  = 0x98A0AFFF,
 
-  -- Status (fixed semantics) — --green / --amber (open) / --red
-  green       = 0x5FD39AFF,  -- #5fd39a  --green
-  amber       = 0xF0B45FFF,  -- #f0b45f  --amber (open)
-  red         = 0xF07A7AFF,  -- #f07a7a  --red
-  yellow      = 0xF0B45FFF,  -- favourite star = amber
+  -- Status (feste Bedeutung): offen = Amber, erledigt = Grün, Fehler = Rot, Stern = Amber
+  green       = 0x33F596FF,
+  amber       = 0xFFB246FF,
+  red         = 0xF28E8EFF,
+  yellow      = 0xFFB246FF,
 
-  -- Comment card backgrounds
-  card_open   = 0x2C241380,  -- amber tint (--amber-bg)
-  card_solved = 0x14261D60,  -- green tint (--green-bg)
+  -- Kommentar-Karten: 15 % Amber bzw. Grün über dem Grund ergibt --amber-bg #281d0e und
+  -- --green-bg #09271a. DURCHSICHTIG, weil die Karte nach ihrem Text gezeichnet wird.
+  card_open   = 0xFFB24626,
+  card_solved = 0x33F59626,
 }
 
 ---------------------------------------------------------------------------
 -- Apply / pop theme
 ---------------------------------------------------------------------------
 local THEME_COLOR_COUNT = 26
-local THEME_VAR_COUNT = 10
+local THEME_VAR_COUNT = 11
 
 local function apply_theme()
   -- Window
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_WindowBg(),       C.bg_body)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ChildBg(),        0x00000000)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_PopupBg(),        C.bg_card)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_PopupBg(),        C.bg_panel2)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Border(),         C.bg_border)
   -- Text
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(),           C.text)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_TextDisabled(),   C.text_muted)
-  -- Frame (inputs, combos)
+  -- Frame (inputs, combos): --sunken mit Rahmen --line-strong wie .inp
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(),        C.bg_input)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBgHovered(), C.bg_border)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBgActive(),  C.bg_border)
-  -- Buttons
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(),         C.accent)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(),  C.accent_hover)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(),   C.accent_hover)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBgHovered(), C.bg_input)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBgActive(),  C.bg_input)
+  -- Buttons: Standard ist der Nebenknopf (.btn.ghost). Die eine Hauptaktion je Fläche
+  -- zeichnet prim_button() in Petrol.
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(),         C.bg_panel2)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(),  C.bg_panel3)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(),   C.bg_panel3)
   -- Headers (accent tint, follows the per-tenant accent)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Header(),         C.accent_dim)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderHovered(),  C.accent_dim)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderActive(),   C.accent_dim)
   -- Tabs
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Tab(),            C.bg_card)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_TabHovered(),     C.accent)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_TabHovered(),     C.accent_dim)
   -- Scrollbar
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ScrollbarBg(),    C.bg_body)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ScrollbarGrab(),  C.bg_border)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ScrollbarGrabHovered(), C.text_muted)
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ScrollbarGrabActive(),  C.text_dim)
   -- Separator
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Separator(),      C.bg_border)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Separator(),      C.line)
   -- Checkbox
   reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_CheckMark(),      C.accent)
   -- Title bar
@@ -340,13 +349,14 @@ local function apply_theme()
   reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_WindowPadding(),    12, 12)
   reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FramePadding(),     8, 5)
   reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_ItemSpacing(),      8, 6)
-  reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FrameRounding(),    4)
+  reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FrameRounding(),    8)
   reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_WindowRounding(),   6)
-  reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_ChildRounding(),    4)
-  reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_PopupRounding(),    4)
+  reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_ChildRounding(),    9)
+  reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_PopupRounding(),    10)
   reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_ScrollbarRounding(),4)
   reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_GrabRounding(),     4)
   reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_WindowBorderSize(), 0)
+  reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FrameBorderSize(),  1)   -- Rahmen um Felder und Nebenknöpfe
 end
 
 local function pop_theme()
@@ -403,13 +413,61 @@ local function unlink_project()
   end
 end
 
--- Secondary button (muted colors for non-primary actions)
+-- Knöpfe wie in Studio OS (studio.css .btn):
+--   sec_button   Nebenknopf, dunkel mit Rahmen (.btn.ghost), klein
+--   prim_button  die eine Hauptaktion, Petrol gefüllt, dunkle Schrift
+--   link_button  Aktion unter einem Kommentar, nur Text (.cmt-act)
+--   pill_button  Zeitmarke @1:23, Petrol-Pille
 local function sec_button(label)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(),        C.bg_input)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), C.bg_border)
-  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(),  C.text_muted)
+  return reaper.ImGui_SmallButton(ctx, label)
+end
+
+local function prim_button(label, w, h)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(),        C.accent)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), C.accent_hover)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(),  C.accent_hover)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(),          C.on_accent)
+  reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FrameBorderSize(), 0)
+  local pressed = reaper.ImGui_Button(ctx, label, w or 0, h or 0)
+  reaper.ImGui_PopStyleVar(ctx)
+  reaper.ImGui_PopStyleColor(ctx, 4)
+  return pressed
+end
+
+local function link_button(label, col)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(),        0x00000000)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), C.accent_dim)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(),  C.accent_dim)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(),          col or C.text_dim)
+  reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FrameBorderSize(), 0)
   local pressed = reaper.ImGui_SmallButton(ctx, label)
-  reaper.ImGui_PopStyleColor(ctx, 3)
+  reaper.ImGui_PopStyleVar(ctx)
+  reaper.ImGui_PopStyleColor(ctx, 4)
+  return pressed
+end
+
+local function pill_button(label, col)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(),        C.accent_dim)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), C.accent_line)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(),  C.accent_line)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Border(),        C.accent_line)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(),          col or C.accent)
+  reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FrameRounding(), 12)
+  local pressed = reaper.ImGui_SmallButton(ctx, label)
+  reaper.ImGui_PopStyleVar(ctx)
+  reaper.ImGui_PopStyleColor(ctx, 5)
+  return pressed
+end
+
+-- Filter wie .ansicht: nur der gewählte trägt Petrol-Fläche und -Kante.
+local function ansicht_button(label, on)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(),        on and C.accent_dim or 0x00000000)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), C.accent_dim)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(),  C.accent_dim)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Border(),        on and C.accent_line or 0x00000000)
+  reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(),          on and C.text or C.text_dim)
+  local pressed = reaper.ImGui_SmallButton(ctx, label)
+  reaper.ImGui_PopStyleColor(ctx, 5)
   return pressed
 end
 
@@ -539,16 +597,20 @@ local function fetch_branding()
   if status ~= 200 then return end
   local ok, data = pcall(json.decode, resp)
   if not ok or type(data) ~= "table" or type(data.accent) ~= "string" then return end
-  local hex = data.accent:gsub("#", "")
+  local hex = data.accent:gsub("#", ""):lower()
   if #hex ~= 6 then return end
+  -- Der alte Standard #3fd9c8 ist keine eigene Farbe: dann bleibt das Petrol des Themes.
+  if hex == "3fd9c8" then return end
   local n = tonumber(hex, 16)
   if not n then return end
-  C.accent     = n * 256 + 0xFF     -- 0xRRGGBBAA
-  C.accent_dim = n * 256 + 0x40     -- 25% alpha
+  C.accent      = n * 256 + 0xFF     -- 0xRRGGBBAA
+  C.accent_dim  = n * 256 + 0x1A     -- --tide-bg (10 %)
+  C.accent_line = n * 256 + 0x4D     -- --tide-line (30 %)
   local r = math.floor(n / 65536) % 256
   local g = math.floor(n / 256) % 256
   local b = n % 256
-  C.accent_hover = math.floor(r * 0.8) * 16777216 + math.floor(g * 0.8) * 65536 + math.floor(b * 0.8) * 256 + 0xFF
+  local hell = function(x) return math.min(255, math.floor(x * 1.06)) end
+  C.accent_hover = hell(r) * 16777216 + hell(g) * 65536 + hell(b) * 256 + 0xFF
 end
 
 local function api_login()
@@ -730,7 +792,7 @@ local function draw_login_section()
 
     reaper.ImGui_Spacing(ctx)
 
-    if reaper.ImGui_Button(ctx, "Verbinden##login_btn") then
+    if prim_button("Verbinden##login_btn") then
       api_login()
     end
 
@@ -772,6 +834,49 @@ local function draw_project_section()
   end
 end
 
+-- Die Versionen eines Songs als Chips, wie auf der Mix-Notes-Seite von Studio OS (.mx-ver):
+-- „v1  v2 1  v3 2 ★". Zahl der offenen Anmerkungen in Amber, Stern an der Lieblingsfassung,
+-- die gewählte Version mit Petrol-Fläche und -Kante. Bricht um, statt abzuschneiden.
+-- Gibt den Index der angeklickten Version zurück (oder nil).
+local STAR = "\xe2\x98\x85"
+local function version_chips(versions, selected, right_reserve)
+  local chip_h, gap, pad_x, inner = 24, 4, 7, 4
+  local x0 = reaper.ImGui_GetCursorScreenPos(ctx)
+  local right = x0 + reaper.ImGui_GetContentRegionAvail(ctx) - (right_reserve or 0)
+  local dl = reaper.ImGui_GetWindowDrawList(ctx)
+  local clicked, last_x2 = nil, nil
+  for i, ver in ipairs(versions) do
+    local teile = { { "v" .. tostring(ver.version_number), nil } }
+    local offen = tonumber(ver.open_count) or 0
+    if offen > 0 then teile[#teile + 1] = { tostring(offen), C.amber } end
+    if ver.favourite then teile[#teile + 1] = { STAR, C.amber } end
+    local w = 2 * pad_x
+    for k, t in ipairs(teile) do
+      t.w = reaper.ImGui_CalcTextSize(ctx, t[1])
+      w = w + t.w + (k > 1 and inner or 0)
+    end
+    if last_x2 and last_x2 + gap + w <= right then reaper.ImGui_SameLine(ctx, 0, gap) end
+    reaper.ImGui_InvisibleButton(ctx, "##ver" .. i, w, chip_h)
+    local hover = reaper.ImGui_IsItemHovered(ctx)
+    if hover then reaper.ImGui_SetMouseCursor(ctx, reaper.ImGui_MouseCursor_Hand()) end
+    if reaper.ImGui_IsItemClicked(ctx, 0) and i ~= selected then clicked = i end
+    local x1, y1 = reaper.ImGui_GetItemRectMin(ctx)
+    local x2, y2 = reaper.ImGui_GetItemRectMax(ctx)
+    last_x2 = x2
+    local on = i == selected
+    if on then reaper.ImGui_DrawList_AddRectFilled(dl, x1, y1, x2, y2, C.accent_dim, 6) end
+    reaper.ImGui_DrawList_AddRect(dl, x1, y1, x2, y2,
+      on and C.accent_line or (hover and C.bg_border or C.line), 6)
+    local tx = x1 + pad_x
+    local ty = y1 + (chip_h - reaper.ImGui_GetTextLineHeight(ctx)) / 2
+    for _, t in ipairs(teile) do
+      reaper.ImGui_DrawList_AddText(dl, tx, ty, t[2] or ((on or hover) and C.text or C.text_dim), t[1])
+      tx = tx + t.w + inner
+    end
+  end
+  return clicked
+end
+
 local function draw_song_version_section()
   if not project_data or #songs == 0 then return end
 
@@ -782,8 +887,11 @@ local function draw_song_version_section()
   local current_song = songs[selected_song_idx]
   local song_label = current_song and current_song.title or "Select..."
 
-  local avail_w = reaper.ImGui_GetContentRegionAvail(ctx)
-  reaper.ImGui_SetNextItemWidth(ctx, avail_w * 0.55)
+  local label_w = 80   -- Spalte „Song" / „Version", wie im Plugin
+  reaper.ImGui_AlignTextToFramePadding(ctx)
+  reaper.ImGui_TextColored(ctx, C.text_dim, "Song")
+  reaper.ImGui_SameLine(ctx, label_w)
+  reaper.ImGui_SetNextItemWidth(ctx, -1)
   if reaper.ImGui_BeginCombo(ctx, "##song", song_label) then
     for i, song in ipairs(songs) do
       if reaper.ImGui_Selectable(ctx, song.title, i == selected_song_idx) then
@@ -800,39 +908,33 @@ local function draw_song_version_section()
     reaper.ImGui_EndCombo(ctx)
   end
 
-  reaper.ImGui_SameLine(ctx)
-
   local versions = current_song and current_song.versions or {}
   local current_ver = versions[selected_version_idx]
-  local ver_label = current_ver and ("v" .. tostring(current_ver.version_number)) or "v?"
-  reaper.ImGui_SetNextItemWidth(ctx, logged_in and -35 or -1)
-  if reaper.ImGui_BeginCombo(ctx, "##version", ver_label) then
-    for i, ver in ipairs(versions) do
-      local label = "v" .. tostring(ver.version_number)
-      if ver.label and ver.label ~= "" then label = label .. " - " .. ver.label end
-      if ver.favourite then label = label .. " \xe2\x98\x85" end
-      if reaper.ImGui_Selectable(ctx, label, i == selected_version_idx) then
-        selected_version_idx = i
-        api_load_comments()
-        api_load_peaks()
-      end
-    end
-    reaper.ImGui_EndCombo(ctx)
+  local star_w = (logged_in and current_ver) and 30 or 0
+  reaper.ImGui_AlignTextToFramePadding(ctx)
+  reaper.ImGui_TextColored(ctx, C.text_dim, "Version")
+  reaper.ImGui_SameLine(ctx, label_w)
+  local row_x = reaper.ImGui_GetCursorPosX(ctx)
+  local row_w = reaper.ImGui_GetContentRegionAvail(ctx)
+  reaper.ImGui_BeginGroup(ctx)
+  local gewaehlt = version_chips(versions, selected_version_idx, star_w > 0 and star_w + 8 or 0)
+  reaper.ImGui_EndGroup(ctx)
+  if gewaehlt then
+    selected_version_idx = gewaehlt
+    current_ver = versions[gewaehlt]
+    api_load_comments()
+    api_load_peaks()
   end
 
-  -- Favourite toggle (admin only) - filled/outline star, same height as combo
-  if logged_in and current_ver then
-    reaper.ImGui_SameLine(ctx)
-    local fav_col = current_ver.favourite and C.yellow or C.text_muted
-    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), C.bg_input)
-    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), C.bg_border)
-    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(), C.text_muted)
-    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), fav_col)
-    local star = current_ver.favourite and "\xe2\x98\x85##fav" or "\xe2\x98\x86##fav"
-    if reaper.ImGui_Button(ctx, star) then
+  -- Lieblingsfassung setzen (nur Studio): Nebenknopf rechts in der Versionszeile
+  if star_w > 0 then
+    reaper.ImGui_SameLine(ctx, row_x + row_w - star_w)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), current_ver.favourite and C.amber or C.text_muted)
+    local star = current_ver.favourite and (STAR .. "##fav") or "\xe2\x98\x86##fav"
+    if reaper.ImGui_Button(ctx, star, star_w, 24) then
       api_toggle_favourite()
     end
-    reaper.ImGui_PopStyleColor(ctx, 4)
+    reaper.ImGui_PopStyleColor(ctx)
   end
 
   -- Calibration
@@ -884,8 +986,19 @@ local function draw_waveform_section()
 
   local dl = reaper.ImGui_GetWindowDrawList(ctx)
 
-  -- Background
-  reaper.ImGui_DrawList_AddRectFilled(dl, wx, wy, wx + wf_w, wy + wf_h, C.bg_input, 4)
+  -- Grund --sunken mit Rahmen --line, Radius wie die Felder
+  reaper.ImGui_DrawList_AddRectFilled(dl, wx, wy, wx + wf_w, wy + wf_h, C.bg_input, 9)
+  reaper.ImGui_DrawList_AddRect(dl, wx, wy, wx + wf_w, wy + wf_h, C.line, 9)
+
+  -- Abspielposition (REAPER-Cursor, beim Abspielen die Wiedergabe) vorab: die Balken davor im
+  -- Akzent, danach --wave-idle, wie der Web-Player. Derselbe Wert zeichnet unten den Kopf.
+  local offset = get_current_offset()
+  local cursor_pos = reaper.GetPlayState() ~= 0 and reaper.GetPlayPosition() or reaper.GetCursorPosition()
+  local rel_pos = cursor_pos - offset
+  local play_x = -1
+  if waveform_duration > 0 and rel_pos > 0 then
+    play_x = wx + (math.min(rel_pos, waveform_duration) / waveform_duration) * wf_w
+  end
 
   -- Waveform bars — downsample to pixel width for performance
   local peak_count = #waveform_peaks
@@ -909,13 +1022,12 @@ local function draw_waveform_section()
     if h > 0.5 then
       reaper.ImGui_DrawList_AddRectFilled(dl,
         x, center_y - h,
-        x + bar_w, center_y + h,
-        C.accent, 0)
+        x + math.max(1, bar_w - (bar_w > 3 and 1 or 0)), center_y + h,
+        x < play_x and C.accent or C.wave_idle, 0)
     end
   end
 
   -- Comment markers + tooltip
-  local offset = get_current_offset()
   local mouse_x, mouse_y = reaper.ImGui_GetMousePos(ctx)
   local is_hovered = reaper.ImGui_IsItemHovered(ctx)
   local hovered_comment = nil
@@ -946,15 +1058,7 @@ local function draw_waveform_section()
     reaper.ImGui_EndTooltip(ctx)
   end
 
-  -- Playhead (real-time REAPER cursor position)
-  local cursor_pos = reaper.GetCursorPosition()
-  -- If playing, use play position instead
-  local play_state = reaper.GetPlayState()
-  if play_state ~= 0 then
-    cursor_pos = reaper.GetPlayPosition()
-  end
-  local rel_pos = cursor_pos - offset
-
+  -- Playhead
   if waveform_duration > 0 and rel_pos >= 0 and rel_pos <= waveform_duration then
     local px = wx + (rel_pos / waveform_duration) * wf_w
     reaper.ImGui_DrawList_AddLine(dl, px, bar_top, px, wy + wf_h, 0xFFFFFFFF, 2)
@@ -995,13 +1099,13 @@ local function draw_new_comment_section()
   local cursor_pos = reaper.GetCursorPosition()
   local offset = get_current_offset()
   local relative_tc = math.max(0, cursor_pos - offset)
-  reaper.ImGui_TextColored(ctx, C.accent, "@" .. format_timecode(relative_tc))
+  pill_button("@" .. format_timecode(relative_tc) .. "##now")   -- nur Anzeige, wie die Pille im Web
 
   -- Comment input (2 lines) + button
   local line_h = reaper.ImGui_GetTextLineHeight(ctx)
   changed, new_comment_text = reaper.ImGui_InputTextMultiline(ctx, "##new_comment", new_comment_text, -80, line_h * 2 + 10)
   reaper.ImGui_SameLine(ctx)
-  if reaper.ImGui_Button(ctx, "Add##add_btn", 70, line_h * 2 + 10) and new_comment_text ~= "" then
+  if prim_button("Add##add_btn", 70, line_h * 2 + 10) and new_comment_text ~= "" then
     api_create_comment(relative_tc, new_comment_text)
     new_comment_text = ""
   end
@@ -1021,11 +1125,11 @@ local function draw_comments_section()
   end
 
   -- Filter buttons
-  if reaper.ImGui_RadioButton(ctx, "All (" .. #comments .. ")", filter_mode == 0) then filter_mode = 0 end
+  if ansicht_button("All (" .. #comments .. ")", filter_mode == 0) then filter_mode = 0 end
   reaper.ImGui_SameLine(ctx)
-  if reaper.ImGui_RadioButton(ctx, "Open (" .. open_count .. ")", filter_mode == 1) then filter_mode = 1 end
+  if ansicht_button("Open (" .. open_count .. ")", filter_mode == 1) then filter_mode = 1 end
   reaper.ImGui_SameLine(ctx)
-  if reaper.ImGui_RadioButton(ctx, "Done (" .. resolved_count .. ")", filter_mode == 2) then filter_mode = 2 end
+  if ansicht_button("Done (" .. resolved_count .. ")", filter_mode == 2) then filter_mode = 2 end
   reaper.ImGui_SameLine(ctx)
   if sec_button("Refresh") then
     api_refresh_project()
@@ -1060,11 +1164,7 @@ local function draw_comments_section()
 
         -- Header row: @timecode  Author          [Done] [Edit] [Delete]
         local tc_col = c.solved and C.text_muted or C.accent
-        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), C.bg_border)
-        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), C.accent_dim)
-        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(), C.accent)
-        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), tc_col)
-        if reaper.ImGui_SmallButton(ctx, "@" .. format_timecode(c.timecode)) then
+        if pill_button("@" .. format_timecode(c.timecode), tc_col) then
           local target = offset + c.timecode
           reaper.SetEditCurPos(target, true, true)
           if autoplay_enabled then
@@ -1072,7 +1172,6 @@ local function draw_comments_section()
             if state == 0 then reaper.OnPlayButton() end
           end
         end
-        reaper.ImGui_PopStyleColor(ctx, 4)
 
         reaper.ImGui_SameLine(ctx)
         reaper.ImGui_TextColored(ctx, c.solved and C.text_muted or C.text, (c.author_name or ""))
@@ -1091,15 +1190,12 @@ local function draw_comments_section()
 
           reaper.ImGui_SameLine(ctx, done_x)
           local done_col = c.solved and C.green or C.text_dim
-          reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), done_col)
-          if sec_button(c.solved and "Done##done" or "Done##done") then
+          if link_button("Done##done", done_col) then
             api_resolve(c.id)
           end
-          reaper.ImGui_PopStyleColor(ctx)
 
           reaper.ImGui_SameLine(ctx, edit_x)
-          reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), C.text_dim)
-          if sec_button("Edit##edit") then
+          if link_button("Edit##edit", C.text_dim) then
             if edit_comment_id == c.id then
               edit_comment_id = nil
             else
@@ -1107,14 +1203,11 @@ local function draw_comments_section()
               edit_text = c.text or ""
             end
           end
-          reaper.ImGui_PopStyleColor(ctx)
 
           reaper.ImGui_SameLine(ctx, delete_x)
-          reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), C.red)
-          if sec_button("Delete##del") then
+          if link_button("Delete##del", C.red) then
             api_delete_comment(c.id)
           end
-          reaper.ImGui_PopStyleColor(ctx)
         else
           -- Non-admin: just show status (right-aligned)
           local status_w = 40
@@ -1136,7 +1229,7 @@ local function draw_comments_section()
           for _ in edit_text:gmatch("\n") do num_lines = num_lines + 1 end
           if num_lines < 2 then num_lines = 2 end
           echanged, edit_text = reaper.ImGui_InputTextMultiline(ctx, "##edit_input", edit_text, -1, line_h * num_lines + 10)
-          if sec_button("Save##save_edit") and edit_text ~= "" then
+          if prim_button("Save##save_edit") and edit_text ~= "" then
             api_update_comment(c.id, edit_text)
             edit_comment_id = nil
           end
@@ -1172,8 +1265,7 @@ local function draw_comments_section()
         local reply_w = 48
         reaper.ImGui_Dummy(ctx, 1, 0)
         reaper.ImGui_SameLine(ctx, card_w - 8 - reply_w)
-        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), C.accent)
-        if sec_button("Reply") then
+        if link_button("Reply", C.accent) then
           if reply_comment_id == c.id then
             reply_comment_id = nil
           else
@@ -1181,7 +1273,6 @@ local function draw_comments_section()
             reply_text = ""
           end
         end
-        reaper.ImGui_PopStyleColor(ctx)
 
         -- Reply input
         if reply_comment_id == c.id then
@@ -1191,7 +1282,7 @@ local function draw_comments_section()
           local rchanged
           rchanged, reply_text = reaper.ImGui_InputText(ctx, "##reply_input", reply_text)
           reaper.ImGui_SameLine(ctx)
-          if sec_button("Send") and reply_text ~= "" then
+          if prim_button("Send") and reply_text ~= "" then
             api_reply(c.id, reply_text)
             reply_comment_id = nil
             reply_text = ""
@@ -1207,7 +1298,7 @@ local function draw_comments_section()
         reaper.ImGui_DrawList_AddRectFilled(dl,
           cx - card_pad, cy - card_pad,
           cx + card_w + card_pad, cy + group_h + card_pad,
-          card_bg, 4)
+          card_bg, 9)
 
         reaper.ImGui_Unindent(ctx, card_pad)
         reaper.ImGui_PopID(ctx)

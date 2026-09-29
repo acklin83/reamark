@@ -45,7 +45,9 @@ void WaveformComponent::paint(juce::Graphics& g) {
 
     // Background
     g.setColour(Theme::bgInput());
-    g.fillRoundedRectangle(bounds, 4.0f);
+    g.fillRoundedRectangle(bounds, Theme::radiusSm);
+    g.setColour(Theme::line());
+    g.drawRoundedRectangle(bounds.reduced(0.5f), Theme::radiusSm, 1.0f);
 
     if (peaks.empty() || duration <= 0.0) {
         g.setColour(Theme::textMuted());
@@ -67,8 +69,9 @@ void WaveformComponent::paint(juce::Graphics& g) {
     float barW = wfW / (float)drawBars;
     float samplesPerBar = (float)peakCount / (float)drawBars;
 
-    // Draw waveform bars
-    g.setColour(Theme::accent());
+    // Balken wie im Web-Player: bis zur Abspielposition im Akzent, danach --wave-idle.
+    double relPlay = playheadPos - calibrationOffset;
+    float playX = (relPlay > 0.0 && duration > 0.0) ? bounds.getX() + timecodeToX(juce::jmin(relPlay, duration)) : -1.0f;
     for (int i = 0; i < drawBars; ++i) {
         int s = static_cast<int>(i * samplesPerBar);
         int e = static_cast<int>((i + 1) * samplesPerBar);
@@ -79,7 +82,8 @@ void WaveformComponent::paint(juce::Graphics& g) {
         float h = peak * wfH * 0.45f;
         if (h > 0.5f) {
             float x = bounds.getX() + i * barW;
-            g.fillRect(x, centreY - h, barW, h * 2.0f);
+            g.setColour(x < playX ? Theme::accent() : Theme::waveIdle());
+            g.fillRect(x, centreY - h, juce::jmax(1.0f, barW - (barW > 3.0f ? 1.0f : 0.0f)), h * 2.0f);
         }
     }
 
@@ -139,10 +143,10 @@ void WaveformComponent::paint(juce::Graphics& g) {
         float tipX = juce::jlimit(bounds.getX(), bounds.getRight() - tipW, mx - tipW * 0.5f);
         float tipY = bounds.getBottom() + 2.0f;
 
-        g.setColour(Theme::bgCard());
-        g.fillRoundedRectangle(tipX, tipY, tipW, tipH, 4.0f);
+        g.setColour(Theme::bgPanel2());
+        g.fillRoundedRectangle(tipX, tipY, tipW, tipH, 8.0f);
         g.setColour(Theme::bgBorder());
-        g.drawRoundedRectangle(tipX, tipY, tipW, tipH, 4.0f, 1.0f);
+        g.drawRoundedRectangle(tipX, tipY, tipW, tipH, 8.0f, 1.0f);
 
         g.setColour(Theme::accent());
         g.drawText(tcStr, juce::Rectangle<float>(tipX + 8, tipY + 2, tipW - 16, 16),

@@ -37,25 +37,26 @@ CommentCard::CommentCard() {
     addChildComponent(editCancelBtn);
 
     // Styling
-    timecodeBtn.setColour(juce::TextButton::buttonColourId, Theme::bgBorder());
+    setRolle(timecodeBtn, "pille");   // @1:23 wie im Web
     timecodeBtn.setColour(juce::TextButton::textColourOnId, Theme::accent());
     timecodeBtn.setColour(juce::TextButton::textColourOffId, Theme::accent());
 
+    // Aktionen unter dem Kommentar als Textlinks (.cmt-act), nicht als Knöpfe.
+    for (auto* btn : { &resolveBtn, &editBtn, &replyBtn, &deleteBtn })
+        setRolle(*btn, "link");
     for (auto* btn : { &resolveBtn, &editBtn, &replyBtn }) {
-        btn->setColour(juce::TextButton::buttonColourId, Theme::bgInput());
         btn->setColour(juce::TextButton::textColourOnId, Theme::textDim());
         btn->setColour(juce::TextButton::textColourOffId, Theme::textDim());
     }
-    deleteBtn.setColour(juce::TextButton::buttonColourId, Theme::bgInput());
     deleteBtn.setColour(juce::TextButton::textColourOnId, Theme::red());
     deleteBtn.setColour(juce::TextButton::textColourOffId, Theme::red());
 
     replyBtn.setColour(juce::TextButton::textColourOnId, Theme::accent());
     replyBtn.setColour(juce::TextButton::textColourOffId, Theme::accent());
 
-    replySendBtn.setColour(juce::TextButton::buttonColourId, Theme::bgInput());
-    editSaveBtn.setColour(juce::TextButton::buttonColourId, Theme::bgInput());
-    editCancelBtn.setColour(juce::TextButton::buttonColourId, Theme::bgInput());
+    setRolle(replySendBtn, "primaer");
+    setRolle(editSaveBtn, "primaer");
+    setRolle(editCancelBtn, "neben");
 
     authorLabel.setColour(juce::Label::textColourId, Theme::text());
     textLabel.setColour(juce::Label::textColourId, Theme::text());
@@ -196,7 +197,7 @@ void CommentCard::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().toFloat().reduced(1.0f);
     auto bgCol = comment.solved ? Theme::cardSolved() : Theme::cardOpen();
     g.setColour(bgCol);
-    g.fillRoundedRectangle(bounds, 4.0f);
+    g.fillRoundedRectangle(bounds, Theme::radiusSm);
 }
 
 void CommentCard::resized() {
@@ -302,12 +303,15 @@ CommentListComponent::CommentListComponent() {
     viewport.setScrollBarsShown(true, false);
 
     // Filter button styling
+    for (auto* btn : { &allBtn, &openBtn, &doneBtn })
+        setRolle(*btn, "ansicht");
+    setRolle(refreshBtn, "neben");
     for (auto* btn : { &allBtn, &openBtn, &doneBtn, &refreshBtn }) {
-        btn->setColour(juce::TextButton::buttonColourId, Theme::bgInput());
         btn->setColour(juce::TextButton::textColourOnId, Theme::text());
         btn->setColour(juce::TextButton::textColourOffId, Theme::textDim());
     }
 
+    setFilterMode(filterMode);   // Anfangszustand markieren (sonst war kein Filter gewählt)
     allBtn.onClick = [this]() { setFilterMode(FilterMode::All); rebuild(); };
     openBtn.onClick = [this]() { setFilterMode(FilterMode::Open); rebuild(); };
     doneBtn.onClick = [this]() { setFilterMode(FilterMode::Done); rebuild(); };
@@ -337,13 +341,11 @@ void CommentListComponent::setComments(const std::vector<Comment>& comments, boo
 void CommentListComponent::setFilterMode(FilterMode mode) {
     filterMode = mode;
 
-    // Highlight active filter
-    auto activeCol = Theme::accent();
-    auto inactiveCol = Theme::bgInput();
-
-    allBtn.setColour(juce::TextButton::buttonColourId,  filterMode == All  ? activeCol : inactiveCol);
-    openBtn.setColour(juce::TextButton::buttonColourId, filterMode == Open ? activeCol : inactiveCol);
-    doneBtn.setColour(juce::TextButton::buttonColourId, filterMode == Done ? activeCol : inactiveCol);
+    // Gewählten Filter markieren (Rolle „ansicht", Eigenschaft „an")
+    allBtn.getProperties().set("an", filterMode == All);
+    openBtn.getProperties().set("an", filterMode == Open);
+    doneBtn.getProperties().set("an", filterMode == Done);
+    allBtn.repaint(); openBtn.repaint(); doneBtn.repaint();
 }
 
 void CommentListComponent::rebuild() {

@@ -44,15 +44,24 @@ ReaMarkEditor::ReaMarkEditor(ReaMarkProcessor& p)
     projectCombo.onChange = [this]() { onProjectSelected(); };
 
     // --- Song / Version ---
+    addChildComponent(songLabel);
     addChildComponent(songCombo);
-    addChildComponent(versionCombo);
+    addChildComponent(versionLabel);
+    addChildComponent(versionChips);
+    songLabel.setColour(juce::Label::textColourId, Theme::textDim());
+    versionLabel.setColour(juce::Label::textColourId, Theme::textDim());
     addChildComponent(favouriteBtn);
     addChildComponent(offsetLabel);
     addChildComponent(setOffsetBtn);
     addChildComponent(autoplayCheck);
 
     songCombo.onChange = [this]() { onSongSelected(); };
-    versionCombo.onChange = [this]() { onVersionSelected(); };
+    versionChips.onSelect = [this](int i) {
+        if (i == selectedVersionIdx) return;
+        selectedVersionIdx = i;
+        updateVersionCombo();
+        onVersionSelected();
+    };
 
     favouriteBtn.setColour(juce::TextButton::buttonColourId, Theme::bgInput());
     favouriteBtn.onClick = [this]() { doToggleFavourite(); };
@@ -179,7 +188,8 @@ void ReaMarkEditor::resized() {
 
         // Hide project sections
         projectLabel.setVisible(false); projectCombo.setVisible(false);
-        songCombo.setVisible(false); versionCombo.setVisible(false);
+        songLabel.setVisible(false); songCombo.setVisible(false);
+        versionLabel.setVisible(false); versionChips.setVisible(false);
         favouriteBtn.setVisible(false); offsetLabel.setVisible(false);
         setOffsetBtn.setVisible(false); autoplayCheck.setVisible(false);
         waveform.setVisible(false);
@@ -210,20 +220,28 @@ void ReaMarkEditor::resized() {
 
         if (isProjectLoaded()) {
             // --- Song / Version ---
-            songCombo.setVisible(true); versionCombo.setVisible(true);
+            songLabel.setVisible(true); songCombo.setVisible(true);
+            versionLabel.setVisible(true); versionChips.setVisible(true);
             favouriteBtn.setVisible(loggedIn);
             offsetLabel.setVisible(true); setOffsetBtn.setVisible(true);
             autoplayCheck.setVisible(true);
 
-            auto svRow = area.removeFromTop(rowH);
-            int songW = static_cast<int>(svRow.getWidth() * 0.55f);
-            songCombo.setBounds(svRow.removeFromLeft(songW));
-            svRow.removeFromLeft(4);
+            // Song als Aufklappliste (das Fenster ist oft schmal angedockt), darunter die
+            // Versionen als Chips wie auf der Mix-Notes-Seite, der Stern rechts daneben.
+            auto songRow = area.removeFromTop(rowH);
+            songLabel.setBounds(songRow.removeFromLeft(labelW));
+            songCombo.setBounds(songRow);
+            area.removeFromTop(spacing);
+
+            int chipsW = area.getWidth() - labelW - (loggedIn ? 34 : 0);
+            int chipsH = juce::jmax(rowH, versionChips.heightFor(chipsW));
+            auto verRow = area.removeFromTop(chipsH);
+            versionLabel.setBounds(verRow.removeFromLeft(labelW).withHeight(rowH));
             if (loggedIn) {
-                favouriteBtn.setBounds(svRow.removeFromRight(30));
-                svRow.removeFromRight(4);
+                favouriteBtn.setBounds(verRow.removeFromRight(30).withHeight(rowH));
+                verRow.removeFromRight(4);
             }
-            versionCombo.setBounds(svRow);
+            versionChips.setBounds(verRow.withTrimmedTop(juce::jmax(0, (rowH - 24) / 2)));
 
             area.removeFromTop(spacing);
 
@@ -263,7 +281,8 @@ void ReaMarkEditor::resized() {
             commentList.setVisible(true);
             commentList.setBounds(area);
         } else {
-            songCombo.setVisible(false); versionCombo.setVisible(false);
+            songLabel.setVisible(false); songCombo.setVisible(false);
+            versionLabel.setVisible(false); versionChips.setVisible(false);
             favouriteBtn.setVisible(false); offsetLabel.setVisible(false);
             setOffsetBtn.setVisible(false); autoplayCheck.setVisible(false);
             waveform.setVisible(false);
@@ -429,7 +448,7 @@ void ReaMarkEditor::onSongSelected() {
 }
 
 void ReaMarkEditor::onVersionSelected() {
-    selectedVersionIdx = versionCombo.getSelectedId() - 1;
+    // selectedVersionIdx setzt der Chip (versionChips.onSelect), vorher die Aufklappliste.
     loadComments();
     loadPeaks();
     updateOffsetDisplay();
@@ -555,27 +574,16 @@ void ReaMarkEditor::updateSongCombo() {
 }
 
 void ReaMarkEditor::updateVersionCombo() {
-    versionCombo.clear();
     auto* song = getSelectedSong();
+    versionChips.setVersions(song ? song->versions : std::vector<Version>{}, selectedVersionIdx);
     if (!song) return;
-
-    for (size_t i = 0; i < song->versions.size(); ++i) {
-        auto& v = song->versions[i];
-        juce::String label = "v" + juce::String(v.versionNumber);
-        if (v.label.isNotEmpty())
-            label += " - " + v.label;
-        if (v.favourite)
-            label += " \xe2\x98\x85";
-        versionCombo.addItem(label, static_cast<int>(i + 1));
-    }
-
-    if (selectedVersionIdx >= 0 && selectedVersionIdx < static_cast<int>(song->versions.size()))
-        versionCombo.setSelectedId(selectedVersionIdx + 1, juce::dontSendNotification);
+    resized();   // die Chips können umbrechen: Höhe neu verteilen
 
     // Update favourite button
     auto* ver = getSelectedVersion();
     if (ver) {
-        favouriteBtn.setButtonText(ver->favourite ? "\xe2\x98\x85" : "\xe2\x98\x86");
+        // fromUTF8: ein String aus const char* liest die Bytes als Latin-1, der Stern kam als „â…" an.
+        favouriteBtn.setButtonText(juce::String::fromUTF8(ver->favourite ? "\xe2\x98\x85" : "\xe2\x98\x86"));
         favouriteBtn.setColour(juce::TextButton::textColourOffId,
                                ver->favourite ? Theme::yellow() : Theme::textMuted());
     }

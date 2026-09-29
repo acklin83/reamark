@@ -27,6 +27,7 @@ struct Version {
     int versionNumber = 0;
     juce::String label;
     bool favourite = false;
+    int openCount = 0;          // offene Anmerkungen (ohne Antworten), wie am Chip der Web-Seite
 };
 
 struct Song {
@@ -83,6 +84,7 @@ inline Version parseVersion(const juce::var& v) {
     ver.versionNumber = static_cast<int>(v.getProperty("version_number", 0));
     ver.label = v.getProperty("label", "").toString();
     ver.favourite = static_cast<bool>(v.getProperty("favourite", false));
+    ver.openCount = static_cast<int>(v.getProperty("open_count", 0));
     return ver;
 }
 

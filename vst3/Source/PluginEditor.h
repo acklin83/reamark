@@ -6,6 +6,7 @@
 #include "ReaMarkModels.h"
 #include "ReaMarkTheme.h"
 #include "WaveformComponent.h"
+#include "VersionChips.h"
 #include "CommentListComponent.h"
 
 class ReaMarkEditor : public juce::AudioProcessorEditor,
@@ -50,8 +51,10 @@ private:
     juce::ComboBox projectCombo;
 
     // --- Song / Version section ---
+    juce::Label songLabel    { {}, "Song" };
     juce::ComboBox songCombo;
-    juce::ComboBox versionCombo;
+    juce::Label versionLabel { {}, "Version" };
+    reamark::VersionChips versionChips;      // statt Aufklappliste: v1 v2 v3 mit offenen Anmerkungen
     juce::TextButton favouriteBtn { "" };
     juce::Label offsetLabel;
     juce::TextButton setOffsetBtn { "Set from Cursor" };
