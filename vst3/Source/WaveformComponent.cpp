@@ -87,6 +87,31 @@ void WaveformComponent::paint(juce::Graphics& g) {
         }
     }
 
+    // Bereiche: leise Fläche über den Balken, im dunklen Streifen eine Linie vom Kopf bis zum
+    // Ende (wie Web und Script). Vor den Köpfen, damit die obenauf liegen.
+    const float lineY = bounds.getY() + headStrip * 0.5f - 1.0f;
+    for (auto& c : comments) {
+        if (c.timecodeEnd > c.timecode && c.timecode <= duration) {
+            float x1 = bounds.getX() + timecodeToX(c.timecode);
+            float x2 = bounds.getX() + timecodeToX(juce::jmin(c.timecodeEnd, duration));
+            auto col = c.solved ? Theme::green() : Theme::amber();
+            g.setColour(col.withAlpha(0.10f));
+            g.fillRect(x1, wfBounds.getY(), x2 - x1, wfH);
+            g.setColour(col);
+            g.drawLine(x1, lineY, x2, lineY, 2.0f);
+        }
+    }
+    // Die gezogene Auswahl: der Bereich der nächsten Anmerkung.
+    if (selA >= 0.0 && selE > selA) {
+        float x1 = bounds.getX() + timecodeToX(selA);
+        float x2 = bounds.getX() + timecodeToX(selE);
+        g.setColour(Theme::accentDim());
+        g.fillRect(x1, wfBounds.getY(), x2 - x1, wfH);
+        g.setColour(Theme::accent());
+        g.drawVerticalLine(juce::roundToInt(x1), wfBounds.getY(), wfBounds.getBottom());
+        g.drawVerticalLine(juce::roundToInt(x2), wfBounds.getY(), wfBounds.getBottom());
+    }
+
     // Comment markers
     for (size_t ci = 0; ci < comments.size(); ++ci) {
         auto& c = comments[ci];
@@ -129,7 +154,7 @@ void WaveformComponent::paint(juce::Graphics& g) {
         juce::Font font(juce::FontOptions(12.0f));
         g.setFont(font);
 
-        auto tcStr = "@" + formatTimecode(hc.timecode) + "  " + hc.authorName;
+        auto tcStr = formatTimeRange(hc.timecode, hc.timecodeEnd) + "  " + hc.authorName;
         auto textStr = hc.text;
         if (textStr.length() > 60)
             textStr = textStr.substring(0, 57) + "...";
@@ -157,12 +182,40 @@ void WaveformComponent::paint(juce::Graphics& g) {
     }
 }
 
-void WaveformComponent::mouseDown(const juce::MouseEvent& event) {
-    if (duration <= 0.0 || peaks.empty()) return;
+void WaveformComponent::clearRange() {
+    selA = selE = -1.0;
+    repaint();
+}
 
-    double tc = xToTimecode(static_cast<float>(event.x));
+// Klick springt (beim Loslassen), Ziehen ab 5 px markiert einen Bereich und springt nicht.
+void WaveformComponent::mouseDown(const juce::MouseEvent& event) {
+    dragStartX = static_cast<float>(event.x);
+    dragging = false;
+}
+
+void WaveformComponent::mouseDrag(const juce::MouseEvent& event) {
+    if (duration <= 0.0 || peaks.empty()) return;
+    if (!dragging && std::abs(static_cast<float>(event.x) - dragStartX) < 5.0f) return;
+    dragging = true;
+    double t0 = xToTimecode(dragStartX), t1 = xToTimecode(static_cast<float>(event.x));
+    selA = juce::jmin(t0, t1);
+    selE = juce::jmax(t0, t1);
+    repaint();
+}
+
+void WaveformComponent::mouseUp(const juce::MouseEvent& event) {
+    if (duration <= 0.0 || peaks.empty()) return;
+    if (dragging) {
+        dragging = false;
+        // Der Server speichert ganze Sekunden: was darin zusammenfällt, ist kein Bereich.
+        if (std::floor(selE) <= std::floor(selA))
+            selA = selE = -1.0;
+        repaint();
+        if (onRangeChanged) onRangeChanged(selA, selE);
+        return;
+    }
     if (onSeek)
-        onSeek(tc);
+        onSeek(xToTimecode(static_cast<float>(event.x)));
 }
 
 void WaveformComponent::mouseMove(const juce::MouseEvent& event) {

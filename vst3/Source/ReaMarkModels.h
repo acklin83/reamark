@@ -15,6 +15,7 @@ struct Comment {
     juce::String id;
     juce::String versionId;
     double timecode = 0.0;
+    double timecodeEnd = -1.0;  // Ende eines Bereichs („von bis"), < 0 = Zeitpunkt
     juce::String authorName;
     juce::String text;
     bool solved = false;
@@ -66,6 +67,9 @@ inline Comment parseComment(const juce::var& v) {
     c.id = v.getProperty("id", "").toString();
     c.versionId = v.getProperty("version_id", "").toString();
     c.timecode = static_cast<double>(v.getProperty("timecode", 0.0));
+    // null bzw. fehlend (älterer Server) = Zeitpunkt
+    auto te = v.getProperty("timecode_end", juce::var());
+    c.timecodeEnd = (te.isVoid() || te.isUndefined()) ? -1.0 : static_cast<double>(te);
     c.authorName = v.getProperty("author_name", "").toString();
     c.text = v.getProperty("text", "").toString();
     c.solved = static_cast<bool>(v.getProperty("solved", false));
@@ -129,6 +133,11 @@ inline juce::String formatTimecode(double seconds) {
     int mins = static_cast<int>(seconds / 60.0);
     double secs = seconds - mins * 60.0;
     return juce::String::formatted("%02d:%05.2f", mins, secs);
+}
+
+// „@01:23.40" oder „@01:23.00 to 01:41.00": Pille, Tooltip und Eingabezeile sagen dasselbe.
+inline juce::String formatTimeRange(double a, double e) {
+    return "@" + formatTimecode(a) + (e >= 0.0 ? " to " + formatTimecode(e) : juce::String());
 }
 
 inline juce::String extractShareCode(const juce::String& input) {

@@ -16,9 +16,14 @@ public:
 
     // Callback when user clicks on waveform (timecode relative to song start)
     std::function<void(double timecode)> onSeek;
+    // Ziehen markiert einen Bereich (Frank 30.09.2026). a < 0 = kein Bereich mehr.
+    std::function<void(double a, double e)> onRangeChanged;
+    void clearRange();
 
     void paint(juce::Graphics& g) override;
     void mouseDown(const juce::MouseEvent& event) override;
+    void mouseDrag(const juce::MouseEvent& event) override;
+    void mouseUp(const juce::MouseEvent& event) override;
     void mouseMove(const juce::MouseEvent& event) override;
     void mouseExit(const juce::MouseEvent& event) override;
 
@@ -30,6 +35,10 @@ private:
     double calibrationOffset = 0.0;
 
     int hoveredCommentIdx = -1;  // index into comments vector, -1 = none
+
+    double selA = -1.0, selE = -1.0;   // gezogener Bereich, Sekunden ab Songanfang
+    float dragStartX = 0.0f;
+    bool dragging = false;
 
     double xToTimecode(float x) const;
     float timecodeToX(double tc) const;

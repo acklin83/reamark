@@ -80,10 +80,20 @@ ReaMarkEditor::ReaMarkEditor(ReaMarkProcessor& p)
     waveform.onSeek = [this](double timecode) {
         seekTo(timecode);
     };
+    waveform.onRangeChanged = [this](double a, double e) {
+        rangeA = a; rangeE = e;
+        updateTimecodeDisplay();
+        resized();
+    };
 
     // --- New comment ---
     addChildComponent(authorInput);
     addChildComponent(timecodeLabel);
+    addChildComponent(clearRangeBtn);
+    clearRangeBtn.setButtonText(juce::String::charToString(0x00D7));
+    clearRangeBtn.setTooltip("Clear range");
+    setRolle(clearRangeBtn, "link");
+    clearRangeBtn.onClick = [this]() { clearRange(); };
     addChildComponent(commentInput);
     addChildComponent(addCommentBtn);
 
@@ -193,7 +203,7 @@ void ReaMarkEditor::resized() {
         favouriteBtn.setVisible(false); offsetLabel.setVisible(false);
         setOffsetBtn.setVisible(false); autoplayCheck.setVisible(false);
         waveform.setVisible(false);
-        timecodeLabel.setVisible(false);
+        timecodeLabel.setVisible(false); clearRangeBtn.setVisible(false);
         commentInput.setVisible(false); addCommentBtn.setVisible(false);
         commentList.setVisible(false);
     } else {
@@ -267,7 +277,16 @@ void ReaMarkEditor::resized() {
             auto authorRow = area.removeFromTop(rowH);
             authorInput.setBounds(authorRow.removeFromLeft(120));
             authorRow.removeFromLeft(8);
-            timecodeLabel.setBounds(authorRow);
+            // Mit Bereich steht das x direkt hinter der Angabe, nicht am Zeilenende.
+            clearRangeBtn.setVisible(rangeA >= 0.0);
+            if (rangeA >= 0.0) {
+                int w = juce::GlyphArrangement::getStringWidthInt(timecodeLabel.getFont(),
+                            formatTimeRange(rangeA, rangeE)) + 12;
+                timecodeLabel.setBounds(authorRow.removeFromLeft(juce::jmin(w, authorRow.getWidth() - 28)));
+                clearRangeBtn.setBounds(authorRow.removeFromLeft(24));
+            } else {
+                timecodeLabel.setBounds(authorRow);
+            }
 
             area.removeFromTop(4);
             auto commentRow = area.removeFromTop(46);
@@ -287,6 +306,7 @@ void ReaMarkEditor::resized() {
             setOffsetBtn.setVisible(false); autoplayCheck.setVisible(false);
             waveform.setVisible(false);
             authorInput.setVisible(false); timecodeLabel.setVisible(false);
+            clearRangeBtn.setVisible(false);
             commentInput.setVisible(false); addCommentBtn.setVisible(false);
             commentList.setVisible(false);
         }
@@ -449,6 +469,7 @@ void ReaMarkEditor::onSongSelected() {
 
 void ReaMarkEditor::onVersionSelected() {
     // selectedVersionIdx setzt der Chip (versionChips.onSelect), vorher die Aufklappliste.
+    clearRange();   // ein Bereich gehört zur Fassung, in der er gezogen wurde
     loadComments();
     loadPeaks();
     updateOffsetDisplay();
@@ -505,14 +526,21 @@ void ReaMarkEditor::doCreateComment() {
 
     double transportPos = processorRef.getTransportPositionSeconds();
     double offset = getCurrentOffset();
+    // Gestoppt und in die Welle geklickt: die Zeile zeigt die geklickte Stelle, also gilt sie
+    // auch (vorher ging die Anmerkung an die Transportposition, die Zeile zeigte etwas anderes).
+    if (!processorRef.isTransportPlaying() && manualSeekPos >= 0.0)
+        transportPos = manualSeekPos;
     double relativeTC = juce::jmax(0.0, transportPos - offset);
+    double endTC = -1.0;
+    if (rangeA >= 0.0) { relativeTC = rangeA; endTC = rangeE; }   // Bereich schlägt die Stelle
 
     processorRef.authorName = author;
 
-    api.createComment(activeShareLink, ver->id, relativeTC, author, text,
+    api.createComment(activeShareLink, ver->id, relativeTC, endTC, author, text,
         [this](bool ok, const juce::String& err) {
             if (ok) {
                 commentInput.clear();
+                clearRange();
                 loadComments();
             } else {
                 showError(err);
@@ -599,7 +627,18 @@ void ReaMarkEditor::updateOffsetDisplay() {
         offsetLabel.setColour(juce::Label::textColourId, Theme::textMuted());
 }
 
+void ReaMarkEditor::clearRange() {
+    rangeA = rangeE = -1.0;
+    waveform.clearRange();
+    updateTimecodeDisplay();
+    resized();
+}
+
 void ReaMarkEditor::updateTimecodeDisplay() {
+    if (rangeA >= 0.0) {
+        timecodeLabel.setText(formatTimeRange(rangeA, rangeE), juce::dontSendNotification);
+        return;
+    }
     double transportPos = processorRef.getTransportPositionSeconds();
     double offset = getCurrentOffset();
     double relativeTC = juce::jmax(0.0, transportPos - offset);
@@ -636,8 +675,9 @@ void ReaMarkEditor::seekTo(double relativeTimecode) {
     // Update waveform playhead immediately
     waveform.setPlayheadPosition(manualSeekPos);
 
-    // Update timecode display with the clicked position
-    timecodeLabel.setText("@" + formatTimecode(relativeTimecode), juce::dontSendNotification);
+    // Update timecode display with the clicked position (ein gezogener Bereich bleibt stehen)
+    if (rangeA < 0.0)
+        timecodeLabel.setText("@" + formatTimecode(relativeTimecode), juce::dontSendNotification);
 }
 
 // ---------------------------------------------------------------------------

@@ -176,12 +176,14 @@ void ReaMarkApi::loadComments(const juce::String& shareLink, const juce::String&
     });
 }
 
-void ReaMarkApi::createComment(const juce::String& shareLink, const juce::String& versionId, double timecode,
+void ReaMarkApi::createComment(const juce::String& shareLink, const juce::String& versionId, double timecode, double timecodeEnd,
                                 const juce::String& authorName, const juce::String& text, SimpleCallback callback) {
-    threadPool.addJob([this, shareLink, versionId, timecode, authorName, text, cb = std::move(callback)]() {
+    threadPool.addJob([this, shareLink, versionId, timecode, timecodeEnd, authorName, text, cb = std::move(callback)]() {
         auto body = makeJsonObject({
             { "version_id", versionId },
             { "timecode", timecode },
+            // null = Zeitpunkt; ein älterer Server ignoriert das Feld
+            { "timecode_end", timecodeEnd >= 0.0 ? juce::var(timecodeEnd) : juce::var() },
             { "author_name", authorName },
             { "text", text }
         });

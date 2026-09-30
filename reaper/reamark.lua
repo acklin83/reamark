@@ -1,11 +1,12 @@
 -- @description Mix Notes
 -- @author Studio OS
--- @version 2.1.0
+-- @version 2.2.0
 -- @provides [main] .
 -- @link GitHub https://github.com/acklin83/reamark
 -- @changelog
---   Look of the new Studio OS design: versions as chips with open notes, filter as views,
---   timecode as a pill, played part of the waveform in the studio colour
+--   Comments on a range: with a time selection set, Add stores the selection as the range
+--   (from, to). Ranges show as a band on the waveform; clicking a range pill sets the time
+--   selection to it and the edit cursor to its start.
 -- @about
 --   # Mix Notes
 --
@@ -373,6 +374,21 @@ local function format_timecode(seconds)
   return string.format("%02d:%05.2f", mins, secs)
 end
 
+-- Die Zeitauswahl als Bereich, relativ zum Kalibrier-Offset; nil ohne Auswahl. Der Server
+-- speichert ganze Sekunden: was darin zusammenfällt, wäre dort ein Punkt, also hier auch.
+local function time_selection_rel(offset)
+  local s, e = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
+  if not s or not e then return nil end
+  local a, b = math.max(0, s - offset), e - offset
+  if math.floor(b) <= math.floor(a) then return nil end
+  return a, b
+end
+
+-- Farbe mit anderer Deckkraft (0xRRGGBBAA): für die leise Fläche eines Bereichs.
+local function with_alpha(col, a)
+  return (col & 0xFFFFFF00) | (a & 0xFF)
+end
+
 local function get_offset_key()
   if selected_song_idx > 0 then
     local song = songs[selected_song_idx]
@@ -637,7 +653,7 @@ local function api_login()
   end
 end
 
-local function api_create_comment(timecode, text)
+local function api_create_comment(timecode, text, timecode_end)
   local song = songs[selected_song_idx]
   local ver = song and song.versions and song.versions[selected_version_idx]
   if not ver then return end
@@ -646,6 +662,7 @@ local function api_create_comment(timecode, text)
   local body = json.encode({
     version_id = ver.id,
     timecode = timecode,
+    timecode_end = timecode_end,   -- nil = Zeitpunkt; ältere Server ignorieren das Feld
     author_name = author_name,
     text = text,
   })
@@ -1032,6 +1049,30 @@ local function draw_waveform_section()
   local is_hovered = reaper.ImGui_IsItemHovered(ctx)
   local hovered_comment = nil
 
+  -- Bereiche: leise Fläche über den Balken, oben im dunklen Streifen eine Linie vom Kopf bis
+  -- zum Ende (wie im Web). Vor den Köpfen gezeichnet, damit die obenauf liegen.
+  if waveform_duration > 0 then
+    for _, c in ipairs(comments) do
+      if c.timecode and c.timecode_end and c.timecode_end > c.timecode and c.timecode <= waveform_duration then
+        local bx1 = wx + (c.timecode / waveform_duration) * wf_w
+        local bx2 = wx + (math.min(c.timecode_end, waveform_duration) / waveform_duration) * wf_w
+        local bcol = c.solved and C.green or C.amber
+        reaper.ImGui_DrawList_AddRectFilled(dl, bx1, bar_top, bx2, wy + wf_h, with_alpha(bcol, 0x1A), 0)
+        local ly = wy + head_strip / 2 - 1
+        reaper.ImGui_DrawList_AddLine(dl, bx1, ly, bx2, ly, bcol, 2)
+      end
+    end
+    -- Die gesetzte Zeitauswahl: das wird der Bereich der nächsten Anmerkung.
+    local sa, se = time_selection_rel(offset)
+    if sa and sa < waveform_duration then
+      local sx1 = wx + (sa / waveform_duration) * wf_w
+      local sx2 = wx + (math.min(se, waveform_duration) / waveform_duration) * wf_w
+      reaper.ImGui_DrawList_AddRectFilled(dl, sx1, bar_top, sx2, wy + wf_h, C.accent_dim, 0)
+      reaper.ImGui_DrawList_AddLine(dl, sx1, bar_top, sx1, wy + wf_h, C.accent, 1)
+      reaper.ImGui_DrawList_AddLine(dl, sx2, bar_top, sx2, wy + wf_h, C.accent, 1)
+    end
+  end
+
   for _, c in ipairs(comments) do
     if c.timecode and c.timecode >= 0 and waveform_duration > 0 and c.timecode <= waveform_duration then
       local mx = wx + (c.timecode / waveform_duration) * wf_w
@@ -1051,7 +1092,8 @@ local function draw_waveform_section()
 
   if hovered_comment then
     reaper.ImGui_BeginTooltip(ctx)
-    reaper.ImGui_TextColored(ctx, C.accent, "@" .. format_timecode(hovered_comment.timecode))
+    reaper.ImGui_TextColored(ctx, C.accent, "@" .. format_timecode(hovered_comment.timecode)
+      .. (hovered_comment.timecode_end and (" to " .. format_timecode(hovered_comment.timecode_end)) or ""))
     reaper.ImGui_SameLine(ctx)
     reaper.ImGui_TextColored(ctx, C.text_dim, hovered_comment.author_name or "")
     reaper.ImGui_TextWrapped(ctx, hovered_comment.text or "")
@@ -1099,14 +1141,24 @@ local function draw_new_comment_section()
   local cursor_pos = reaper.GetCursorPosition()
   local offset = get_current_offset()
   local relative_tc = math.max(0, cursor_pos - offset)
-  pill_button("@" .. format_timecode(relative_tc) .. "##now")   -- nur Anzeige, wie die Pille im Web
+  -- Mit Zeitauswahl gilt sie als Bereich, sonst der Edit-Cursor (Frank 30.09.2026).
+  local sel_a, sel_e = time_selection_rel(offset)
+  if sel_a then
+    pill_button("@" .. format_timecode(sel_a) .. " to " .. format_timecode(sel_e) .. "##now")
+  else
+    pill_button("@" .. format_timecode(relative_tc) .. "##now")   -- nur Anzeige, wie die Pille im Web
+  end
+  if reaper.ImGui_IsItemHovered(ctx) then
+    reaper.ImGui_SetTooltip(ctx, sel_a and "Time selection: the note covers this range"
+      or "Set a time selection to comment on a range")
+  end
 
   -- Comment input (2 lines) + button
   local line_h = reaper.ImGui_GetTextLineHeight(ctx)
   changed, new_comment_text = reaper.ImGui_InputTextMultiline(ctx, "##new_comment", new_comment_text, -80, line_h * 2 + 10)
   reaper.ImGui_SameLine(ctx)
   if prim_button("Add##add_btn", 70, line_h * 2 + 10) and new_comment_text ~= "" then
-    api_create_comment(relative_tc, new_comment_text)
+    api_create_comment(sel_a or relative_tc, new_comment_text, sel_e)
     new_comment_text = ""
   end
 end
@@ -1164,8 +1216,14 @@ local function draw_comments_section()
 
         -- Header row: @timecode  Author          [Done] [Edit] [Delete]
         local tc_col = c.solved and C.text_muted or C.accent
-        if pill_button("@" .. format_timecode(c.timecode), tc_col) then
+        local tc_label = "@" .. format_timecode(c.timecode)
+          .. (c.timecode_end and (" to " .. format_timecode(c.timecode_end)) or "")
+        if pill_button(tc_label .. "##tc" .. tostring(c.id), tc_col) then
           local target = offset + c.timecode
+          -- Bereich: als Zeitauswahl setzen, Schleife macht REAPER selbst (Repeat).
+          if c.timecode_end then
+            reaper.GetSet_LoopTimeRange(true, false, target, offset + c.timecode_end, false)
+          end
           reaper.SetEditCurPos(target, true, true)
           if autoplay_enabled then
             local state = reaper.GetPlayState()

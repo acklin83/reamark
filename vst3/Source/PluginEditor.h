@@ -66,6 +66,9 @@ private:
     // --- New comment ---
     juce::TextEditor authorInput;
     juce::Label timecodeLabel;
+    juce::TextButton clearRangeBtn;          // hebt den gezogenen Bereich auf
+    double rangeA = -1.0, rangeE = -1.0;     // Bereich der nächsten Anmerkung, < 0 = keiner
+    void clearRange();
     juce::TextEditor commentInput;
     juce::TextButton addCommentBtn { "Add" };
 

@@ -38,7 +38,8 @@ public:
     void loadComments(const juce::String& shareLink, const juce::String& versionId, CommentsCallback callback);
 
     using SimpleCallback = std::function<void(bool success, const juce::String& error)>;
-    void createComment(const juce::String& shareLink, const juce::String& versionId, double timecode,
+    // timecodeEnd < 0 = Zeitpunkt, sonst Ende des Bereichs (Sekunden, relativ zum Songanfang)
+    void createComment(const juce::String& shareLink, const juce::String& versionId, double timecode, double timecodeEnd,
                        const juce::String& authorName, const juce::String& text, SimpleCallback callback);
 
     void replyToComment(const juce::String& shareLink, const juce::String& commentId,

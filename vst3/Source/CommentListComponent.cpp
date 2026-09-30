@@ -122,7 +122,7 @@ void CommentCard::setComment(const Comment& c, bool isAdminUser) {
     comment = c;
     admin = isAdminUser;
 
-    timecodeBtn.setButtonText("@" + formatTimecode(c.timecode));
+    timecodeBtn.setButtonText(formatTimeRange(c.timecode, c.timecodeEnd));
     authorLabel.setText(c.authorName, juce::dontSendNotification);
     textLabel.setText(c.text, juce::dontSendNotification);
 
@@ -206,7 +206,7 @@ void CommentCard::resized() {
 
     // Header: [timecode] [author]                [Done] [Edit] [Delete]
     auto header = area.removeFromTop(rowH);
-    timecodeBtn.setBounds(header.removeFromLeft(90));
+    timecodeBtn.setBounds(header.removeFromLeft(comment.timecodeEnd >= 0.0 ? 172 : 90));
     header.removeFromLeft(4);
 
     if (admin) {
