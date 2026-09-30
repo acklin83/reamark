@@ -4,8 +4,10 @@
 -- @provides [main] .
 -- @link GitHub https://github.com/acklin83/reamark
 -- @changelog
---   Comments on a range: with a time selection set, Add stores the selection as the range
---   (from, to). Ranges show as a band on the waveform; clicking a range pill sets the time
+--   Rebuilt for Studio OS, replacing the ReaMark login: connect with the server URL and
+--   connect token, versions as chips with their open notes, the Studio OS look.
+--   New: comments on a range. With a time selection set, Add stores it as the range;
+--   ranges show as a band on the waveform, and clicking a range pill sets the time
 --   selection to it and the edit cursor to its start.
 -- @about
 --   # Mix Notes
@@ -15,7 +17,7 @@
 --   and create, reply to, resolve, edit or delete timeline comments from REAPER.
 --
 --   Requires the ReaImGui extension (install via ReaPack). Server URL + connect
---   token are under Studio OS → Settings → Integrations → Mix Client.
+--   token are under Studio OS → Settings → Integrations → Mix client (REAPER / VST3).
 --
 -- Mix Notes v2 - REAPER integration for Studio OS
 -- Requires ReaImGui (install via ReaPack)
