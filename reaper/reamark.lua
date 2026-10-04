@@ -1113,7 +1113,8 @@ local function measure_start(m) return (reaper.TimeMap_GetMeasureInfo(0, m)) end
 local function measure_at(t)
   local _, m = reaper.TimeMap2_timeToBeats(0, t)
   m = math.floor(m or 0)
-  for _ = 1, 4 do
+  -- Walks until the measure brackets t, however REAPER numbers them (project start measure).
+  for _ = 1, 5000 do
     if measure_start(m) > t + 1e-6 then m = m - 1
     elseif measure_start(m + 1) <= t + 1e-6 then m = m + 1
     else break end
@@ -1154,10 +1155,10 @@ local function tempo_prepare(offset, stop)
     local danach = mk.pos >= stop and punkte[#punkte].linear   -- the end point of a glide that runs past the song end
     if mk.pos > t1 + 1e-6 and (mk.pos < stop or danach) then
       local m = measure_at(mk.pos)
-      local rein = mk.pos - measure_start(m)
-      if rein > 0.002 then
-        -- Studio OS keeps changes on bar starts: take the nearest one and say so.
-        if rein > measure_start(m + 1) - mk.pos then m = m + 1 end
+      local rein, raus = mk.pos - measure_start(m), measure_start(m + 1) - mk.pos
+      -- Studio OS keeps changes on bar starts: take the nearest one, and say so when it is not one already.
+      if rein > raus then m = m + 1 end
+      if math.min(rein, raus) > 0.002 then
         warnings[#warnings + 1] = "Change at " .. format_timecode(mk.pos - offset) .. " is inside a bar; placed at bar " .. tostring(m - m1 + 1) .. "."
       end
       local takt = m - m1 + 1
@@ -1165,8 +1166,7 @@ local function tempo_prepare(offset, stop)
       local p = { takt = takt, bpm = mk.bpm, zaehler = cur_num, nenner = cur_den, linear = mk.lin }
       if takt <= punkte[#punkte].takt then
         if takt > 1 then warnings[#warnings + 1] = "Two changes in bar " .. tostring(takt) .. "; the later one counts." end
-        p.takt = punkte[#punkte].takt
-        if p.takt == 1 then p.bpm = punkte[1].bpm end   -- bar 1 keeps REAPER's effective tempo there
+        p.takt = punkte[#punkte].takt   -- the marker's own tempo counts, also on bar 1
         punkte[#punkte] = p
       else
         punkte[#punkte + 1] = p
@@ -1174,7 +1174,8 @@ local function tempo_prepare(offset, stop)
       if danach then break end
     end
   end
-  local karte = { start_sek = math.floor((t1 - offset) * 1000 + 0.5) / 1000, punkte = punkte, quelle = "reaper" }
+  for _, p in ipairs(punkte) do p.zaehler, p.nenner = math.floor(p.zaehler + 0.5), math.floor(p.nenner + 0.5) end
+  local karte = { start_sek = math.max(0, math.floor((t1 - offset) * 1000 + 0.5) / 1000), punkte = punkte, quelle = "reaper" }
   -- Check: every bar of the song, Studio OS's time against REAPER's measure start.
   local seg, worst, worst_bar, bars = tk_segmente(karte), 0, 0, 0
   local k = 1
@@ -1186,7 +1187,13 @@ local function tempo_prepare(offset, stop)
     bars = k
     k = k + 1
   end
-  return { karte = karte, warnings = warnings, worst = worst, worst_bar = worst_bar, bars = bars }
+  -- Studio OS keeps at most 500 points (backend app/tempokarte.py PUNKTE_MAX).
+  local zuviel = #punkte > 500
+  -- Without any tempo marker REAPER only knows the project tempo, often never set (120). That
+  -- becomes a map only when ticked in the preview.
+  local nur_projekt = reaper.CountTempoTimeSigMarkers(0) == 0
+  return { karte = karte, warnings = warnings, worst = worst, worst_bar = worst_bar, bars = bars, zuviel = zuviel,
+           nur_projekt = nur_projekt, uebernehmen = not nur_projekt and not zuviel }
 end
 
 local function tempo_lines(tp)
@@ -1263,12 +1270,16 @@ local function sections_prepare(song)
   end
   local turl = sections_url(song, "tempo")
   local tstatus, tresp = http_request("GET", turl, nil, auth_token)
+  local alt = (tstatus == 200) and json.decode(tresp or "") or nil
+  local tp = tempo_prepare(offset, stop)
   if tstatus ~= 200 then
-    section_msg = "Could not read the current tempo map (HTTP " .. tostring(tstatus) .. ")"
+    -- An older server without tempo maps: sections still work.
+    tp.uebernehmen, tp.fehlt = false, "Tempo map not available on the server (HTTP " .. tostring(tstatus) .. "); sections only."
+  end
+  if #list == 0 and not tp.uebernehmen and not tp.nur_projekt then
+    section_msg = tp.fehlt or "Nothing to sync: no named markers in this song's range."
     return
   end
-  local alt = json.decode(tresp or "")
-  local tp = tempo_prepare(offset, stop)
   section_preview = { song_id = song.id, url = url, turl = turl, ziel = ziel, offset = offset, new_offset = new_offset,
                       list = list, existing = existing, tempo = tp, tempo_alt = (type(alt) == "table") and alt or nil }
 end
@@ -1287,20 +1298,27 @@ local function sections_apply()
     end
     teile[#teile + 1] = tostring(#v.list) .. " sections"
   end
-  local status, resp = http_request("PUT", v.turl, json.encode(v.tempo.karte), auth_token)
-  if status ~= 200 then
-    local d = json.decode(resp or "")
-    section_msg = (#teile > 0 and (teile[1] .. " saved; ") or "") .. "saving the tempo map failed (HTTP " .. tostring(status) .. ")"
-      .. ((d and d.detail) and (": " .. tostring(d.detail)) or "")
-    section_preview = nil
-    return
+  -- The sections are measured from this offset: keep it as soon as anything relative to it is saved.
+  local function offset_merken()
+    if v.new_offset then
+      calibration_offsets[tostring(v.song_id)] = v.new_offset
+      reaper.SetProjExtState(0, "ReaMark", "offset_" .. tostring(v.song_id), tostring(v.new_offset))
+    end
   end
-  teile[#teile + 1] = "the tempo map"
-  if v.new_offset then
-    calibration_offsets[tostring(v.song_id)] = v.new_offset
-    reaper.SetProjExtState(0, "ReaMark", "offset_" .. tostring(v.song_id), tostring(v.new_offset))
+  if #teile > 0 then offset_merken() end
+  if v.tempo.uebernehmen then
+    local status, resp = http_request("PUT", v.turl, json.encode(v.tempo.karte), auth_token)
+    if status ~= 200 then
+      local d = json.decode(resp or "")
+      section_msg = (#teile > 0 and (teile[1] .. " saved; ") or "") .. "saving the tempo map failed (HTTP " .. tostring(status) .. ")"
+        .. ((d and d.detail) and (": " .. tostring(d.detail)) or "")
+      section_preview = nil
+      return
+    end
+    teile[#teile + 1] = "the tempo map"
+    offset_merken()
   end
-  section_msg = table.concat(teile, " and ") .. " saved."
+  section_msg = #teile > 0 and (table.concat(teile, " and ") .. " saved.") or "Nothing saved."
   section_preview = nil
 end
 
@@ -1336,7 +1354,20 @@ local function draw_sections_row(song)
     local tp = v.tempo
     reaper.ImGui_Spacing(ctx)
     reaper.ImGui_TextColored(ctx, C.text_muted, "Tempo map  (bar 1 at " .. format_timecode(tp.karte.start_sek) .. ")")
-    for _, l in ipairs(tempo_lines(tp)) do reaper.ImGui_TextColored(ctx, C.text_dim, l) end
+    if tp.fehlt then reaper.ImGui_TextColored(ctx, C.amber, tp.fehlt) end
+    if tp.nur_projekt and not tp.fehlt then
+      -- No tempo markers: the project tempo may never have been set. Only on request.
+      local _, an = reaper.ImGui_Checkbox(ctx, "No tempo markers: use the project tempo as the tempo map##tk", tp.uebernehmen)
+      tp.uebernehmen = an
+    end
+    local zeilen = tempo_lines(tp)
+    for i, l in ipairs(zeilen) do
+      if i > 30 then reaper.ImGui_TextColored(ctx, C.text_muted, "... " .. tostring(#zeilen - 30) .. " more changes"); break end
+      reaper.ImGui_TextColored(ctx, C.text_dim, l)
+    end
+    if tp.zuviel then
+      reaper.ImGui_TextColored(ctx, C.amber, "More than 500 tempo changes in this song; Studio OS keeps at most 500. Only the sections are saved.")
+    end
     for _, w in ipairs(tp.warnings) do reaper.ImGui_TextColored(ctx, C.amber, w) end
     if tp.bars > 0 then
       if tp.worst < 0.005 then
@@ -1346,7 +1377,7 @@ local function draw_sections_row(song)
           "Bars differ from REAPER by up to %d ms (bar %d of %d).", math.floor(tp.worst * 1000 + 0.5), tp.worst_bar, tp.bars))
       end
     end
-    if v.tempo_alt then
+    if v.tempo_alt and tp.uebernehmen then
       reaper.ImGui_TextColored(ctx, C.amber, "Replaces the existing tempo map"
         .. (v.tempo_alt.quelle == "reaper" and " (from REAPER)." or " (made by hand)."))
     end
