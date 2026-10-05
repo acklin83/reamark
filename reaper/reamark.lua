@@ -1,9 +1,15 @@
 -- @description Mix Notes
 -- @author Studio OS
--- @version 2.5.1
+-- @version 2.5.2
 -- @provides [main] .
 -- @link GitHub https://github.com/acklin83/reamark
 -- @changelog
+--   The song start comes from the version's FILE in the project: Sync looks for the item whose
+--   file has the version's file name (extension, case, "_" and "-" do not matter, so a WAV in
+--   REAPER matches the MP3 in Studio OS) and measures sections and bars from where that file
+--   starts, trimmed starts included. A region that starts earlier than the file no longer
+--   shifts everything. Without such an item it works as before (offset, then region). The
+--   preview names the file and its start.
 --   Preproduction: each version finds its OWN region. Two versions rendered from two regions
 --   ("Song v1", "Song v2") no longer share one: the region is matched by the song title plus
 --   "v" and the version number, the song title plus the version name ("Song PrePro V2"), or
@@ -1252,11 +1258,49 @@ local function version_region_names(song, ver)
   return out
 end
 
+-- The version's file in the project (2.5.2, Frank 05.10.2026: a client file that does not start on bar 1 sits later than
+-- its region, everything measured from the region was off by that gap). Matches the take's source file name against the
+-- version's file name, both without extension and loosely written (`name_norm`). Returns where the FILE starts on the
+-- timeline (item position minus the trimmed part), the earliest if the file is used more than once; nil if none.
+local function version_file_item(ver)
+  local f = ver and ver.original_filename or ""
+  if f == "" then return nil end
+  local want = name_norm((f:gsub("%.[^%.]+$", "")))
+  if want == "" then return nil end
+  local best, n = nil, 0
+  for i = 0, reaper.CountMediaItems(0) - 1 do
+    local item = reaper.GetMediaItem(0, i)
+    local take = item and reaper.GetActiveTake(item)
+    local src = take and reaper.GetMediaItemTake_Source(take)
+    -- Sections and reversed sources hang under a parent that carries the file.
+    while src do
+      local parent = reaper.GetMediaSourceParent(src)
+      if not parent then break end
+      src = parent
+    end
+    local fn = src and reaper.GetMediaSourceFileName(src) or ""
+    local stem = ((fn:match("([^/\\]+)$") or ""):gsub("%.[^%.]+$", ""))
+    if stem ~= "" and name_norm(stem) == want then
+      n = n + 1
+      local rate = reaper.GetMediaItemTakeInfo_Value(take, "D_PLAYRATE")
+      if not rate or rate <= 0 then rate = 1 end
+      local start = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
+        - reaper.GetMediaItemTakeInfo_Value(take, "D_STARTOFFS") / rate
+      if not best or start < best.start then
+        best = { start = start, name = stem, rate = rate, len = reaper.GetMediaSourceLength(src) }
+      end
+    end
+  end
+  if best then best.n = n end
+  return best
+end
+
 local function sections_prepare(song)
   section_msg = ""
   section_preview = nil
   local all = project_markers()
-  local ver = (modus == "preprod") and song.versions and song.versions[selected_version_idx] or nil
+  local sel = song.versions and song.versions[selected_version_idx] or nil   -- the selected version, Mix or Preproduction
+  local ver = (modus == "preprod") and sel or nil
   local okey = offset_key_for(song, ver)
   local offset = calibration_offsets[okey]
   -- The song's region. Preproduction: first the region named after the VERSION ("Song v2", the file name),
@@ -1286,9 +1330,16 @@ local function sections_prepare(song)
   end
   local new_offset = nil
   if offset == 0 and song_rgn and song_rgn.pos > 0 then offset = song_rgn.pos; new_offset = offset end
+  -- The file's own start wins over offset and region: it is where the listener's 0:00 is.
+  local item = version_file_item(sel)
+  if item then
+    new_offset = (math.abs((calibration_offsets[okey] or math.huge) - item.start) > 0.0005) and item.start or nil
+    offset = item.start
+  end
   -- End of the song: its region, else the length of the mix, else open.
   local stop = math.huge
   if song_rgn and song_rgn.rgnend > offset then stop = song_rgn.rgnend
+  elseif item and (item.len or 0) > 0 then stop = offset + item.len / item.rate
   elseif waveform_duration > 0 then stop = offset + waveform_duration end
   local list, seen = {}, {}
   for _, m in ipairs(all) do
@@ -1336,7 +1387,7 @@ local function sections_prepare(song)
     section_msg = tp.fehlt or "Nothing to sync: no named markers in this song's range."
     return
   end
-  section_preview = { song_id = song.id, offset_key = okey, region = song_rgn, region_wie = rgn_wie, url = url, turl = turl, ziel = ziel, offset = offset, new_offset = new_offset,
+  section_preview = { song_id = song.id, offset_key = okey, region = song_rgn, region_wie = rgn_wie, item = item, url = url, turl = turl, ziel = ziel, offset = offset, new_offset = new_offset,
                       list = list, existing = existing, tempo = tp, tempo_alt = (type(alt) == "table") and alt or nil }
 end
 
@@ -1387,7 +1438,8 @@ local function draw_sections_row(song)
       or "For this song in Studio OS:\n")
       .. "named markers and regions inside the song become its sections (Intro, V1, C1 ...),\n"
       .. "and the tempo and time signature markers become its tempo map (bars in the player).\n"
-      .. "Measured from the song's start. Shows a preview first.")
+      .. "Measured from where the version's file starts in the project (its item),\n"
+      .. "else from the song's start (offset or region). Shows a preview first.")
   end
   if section_msg ~= "" then
     reaper.ImGui_SameLine(ctx)
@@ -1439,16 +1491,26 @@ local function draw_sections_row(song)
     end
     -- Which part of the project was read, so a wrong region shows before Apply.
     local wer = modus == "preprod" and "version" or "song"
+    if v.item then
+      reaper.ImGui_TextColored(ctx, C.text_muted, "Start: the file \"" .. v.item.name .. "\" in the project at "
+        .. format_timecode(v.item.start) .. (v.item.n > 1 and ("  (" .. tostring(v.item.n) .. " items, the earliest)") or ""))
+      if math.abs(v.item.rate - 1) > 0.0001 then
+        reaper.ImGui_TextColored(ctx, C.amber, "That item plays at a different rate: times in Studio OS will not match.")
+      end
+    end
     if v.region then
       reaper.ImGui_TextColored(ctx, C.text_muted, "Region: \"" .. trim(v.region.name) .. "\"  ("
         .. format_timecode(v.region.pos) .. " to " .. format_timecode(v.region.rgnend) .. ")"
         .. (v.region_wie == "offset" and ", starts at the offset" or ""))
+    elseif v.item then
+      reaper.ImGui_TextColored(ctx, C.text_muted, "No region named after this " .. wer .. ": ends with the file.")
     else
       reaper.ImGui_TextColored(ctx, modus == "preprod" and C.amber or C.text_muted, "No region named after this " .. wer .. ": from the offset "
         .. format_timecode(v.offset) .. (modus == "preprod" and ".\nName it like the song plus the version (\"" .. trim(song.title) .. " v2\") or like the file." or "."))
     end
     if v.new_offset then
-      reaper.ImGui_TextColored(ctx, C.text_muted, "Start from the region: " .. format_timecode(v.new_offset) .. " (also sets the offset of this " .. wer .. ")")
+      reaper.ImGui_TextColored(ctx, C.text_muted, (v.item and "Start from the file: " or "Start from the region: ")
+        .. format_timecode(v.new_offset) .. " (also sets the offset of this " .. wer .. ")")
     end
     if prim_button("Apply") then sections_apply() end
     reaper.ImGui_SameLine(ctx)
