@@ -1,9 +1,16 @@
 -- @description Mix Notes
 -- @author Studio OS
--- @version 2.5.0
+-- @version 2.5.1
 -- @provides [main] .
 -- @link GitHub https://github.com/acklin83/reamark
 -- @changelog
+--   Preproduction: each version finds its OWN region. Two versions rendered from two regions
+--   ("Song v1", "Song v2") no longer share one: the region is matched by the song title plus
+--   "v" and the version number, the song title plus the version name ("Song PrePro V2"), or
+--   the uploaded file name ("Song_v2.wav"); case, "_" and "-" do not matter. Only then the
+--   region named like the song, as before. The song start (offset) is kept per version in
+--   Preproduction (a version without one still uses the song's). The preview names the
+--   region it read, so a wrong one shows before Apply.
 --   New: "Sync from REAPER" (was "Sections from markers") also brings the song's tempo map:
 --   tempo and time signature at the song start and every change inside the song, gliding
 --   tempos included, so Studio OS can show bars and beats. One preview for sections and tempo
@@ -423,17 +430,26 @@ local function with_alpha(col, a)
   return (col & 0xFFFFFF00) | (a & 0xFF)
 end
 
+-- Songstart (Offset): im Mix je Song, in der Preproduction je FASSUNG (2.5.1, Frank 05.10.2026:
+-- zwei Fassungen aus zwei Regionen „Song v1", „Song v2" teilten sonst einen Start).
+local function offset_key_for(song, ver)
+  if modus == "preprod" and ver then return "pp:" .. tostring(ver.id) end
+  return tostring(song.id)
+end
+
 local function get_offset_key()
   if selected_song_idx > 0 then
     local song = songs[selected_song_idx]
-    if song then return tostring(song.id) end
+    if song then return offset_key_for(song, song.versions and song.versions[selected_version_idx]) end
   end
   return ""
 end
 
+-- Eine Fassung ohne eigenen Start nimmt den des Songs (so war es bis 2.5.0 gespeichert).
 local function get_current_offset()
   local key = get_offset_key()
-  return calibration_offsets[key] or 0
+  local song = songs[selected_song_idx]
+  return calibration_offsets[key] or (song and calibration_offsets[tostring(song.id)]) or 0
 end
 
 local function save_state()
@@ -552,6 +568,11 @@ local function load_calibration_offsets()
     local key = tostring(song.id)
     local rv, saved = reaper.GetProjExtState(0, "ReaMark", "offset_" .. key)
     if rv > 0 and saved ~= "" then calibration_offsets[key] = tonumber(saved) end
+    for _, ver in ipairs(song.versions or {}) do
+      local vkey = "pp:" .. tostring(ver.id)
+      local vrv, vsaved = reaper.GetProjExtState(0, "ReaMark", "offset_" .. vkey)
+      if vrv > 0 and vsaved ~= "" then calibration_offsets[vkey] = tonumber(vsaved) end
+    end
   end
 end
 
@@ -1212,20 +1233,55 @@ local function tempo_lines(tp)
   return out
 end
 
+-- Names compared loosely: case, "_", "-", ".", brackets and "v 1" vs "v1" do not matter
+-- ("On_The_Open_Sea_V2" = "On the Open Sea v2").
+local function name_norm(s)
+  s = (s or ""):lower():gsub("[_%-%.%(%)%[%]]", " "):gsub("%s+", " ")
+  s = trim(s):gsub(" v (%d)", " v%1")
+  return s
+end
+
+-- The names a preproduction version's region may have: the uploaded file's name without its extension
+-- (rendered from a region, the file is usually named after it), "<song> v<number>", "<song> <label>".
+local function version_region_names(song, ver)
+  local out, t = {}, name_norm(song.title)
+  local f = ver.original_filename or ""
+  if f ~= "" then out[#out + 1] = name_norm((f:gsub("%.[^%.]+$", ""))) end
+  if ver.version_number then out[#out + 1] = t .. " v" .. tostring(ver.version_number) end
+  if trim(ver.label) ~= "" then out[#out + 1] = t .. " " .. name_norm(ver.label) end
+  return out
+end
+
 local function sections_prepare(song)
   section_msg = ""
   section_preview = nil
   local all = project_markers()
-  local offset = calibration_offsets[tostring(song.id)] or 0
-  local title = trim(song.title):lower()
-  -- The song's region: named like the song, else the region that starts at the offset.
-  local song_rgn = nil
-  for _, m in ipairs(all) do
-    if m.isrgn and trim(m.name):lower() == title then song_rgn = m; break end
+  local ver = (modus == "preprod") and song.versions and song.versions[selected_version_idx] or nil
+  local okey = offset_key_for(song, ver)
+  local offset = calibration_offsets[okey]
+  -- The song's region. Preproduction: first the region named after the VERSION ("Song v2", the file name),
+  -- so two versions rendered from two regions each get their own; then the region named like the song,
+  -- else the region that starts at the offset.
+  local song_rgn, rgn_wie = nil, nil
+  if ver then
+    local namen = {}
+    for _, n in ipairs(version_region_names(song, ver)) do namen[n] = true end
+    for _, m in ipairs(all) do
+      if m.isrgn and namen[name_norm(m.name)] then song_rgn, rgn_wie = m, "version"; break end
+    end
   end
+  if not song_rgn then
+    local title = name_norm(song.title)
+    for _, m in ipairs(all) do
+      if m.isrgn and name_norm(m.name) == title then song_rgn, rgn_wie = m, "song"; break end
+    end
+  end
+  -- A version without its own start uses the song's (stored that way up to 2.5.0), unless its own region was found.
+  if offset == nil and ver and rgn_wie ~= "version" then offset = calibration_offsets[tostring(song.id)] end
+  offset = offset or 0
   if not song_rgn and offset > 0 then
     for _, m in ipairs(all) do
-      if m.isrgn and math.abs(m.pos - offset) < 0.05 then song_rgn = m; break end
+      if m.isrgn and math.abs(m.pos - offset) < 0.05 then song_rgn, rgn_wie = m, "offset"; break end
     end
   end
   local new_offset = nil
@@ -1280,7 +1336,7 @@ local function sections_prepare(song)
     section_msg = tp.fehlt or "Nothing to sync: no named markers in this song's range."
     return
   end
-  section_preview = { song_id = song.id, url = url, turl = turl, ziel = ziel, offset = offset, new_offset = new_offset,
+  section_preview = { song_id = song.id, offset_key = okey, region = song_rgn, region_wie = rgn_wie, url = url, turl = turl, ziel = ziel, offset = offset, new_offset = new_offset,
                       list = list, existing = existing, tempo = tp, tempo_alt = (type(alt) == "table") and alt or nil }
 end
 
@@ -1301,8 +1357,8 @@ local function sections_apply()
   -- The sections are measured from this offset: keep it as soon as anything relative to it is saved.
   local function offset_merken()
     if v.new_offset then
-      calibration_offsets[tostring(v.song_id)] = v.new_offset
-      reaper.SetProjExtState(0, "ReaMark", "offset_" .. tostring(v.song_id), tostring(v.new_offset))
+      calibration_offsets[v.offset_key] = v.new_offset
+      reaper.SetProjExtState(0, "ReaMark", "offset_" .. v.offset_key, tostring(v.new_offset))
     end
   end
   if #teile > 0 then offset_merken() end
@@ -1381,8 +1437,18 @@ local function draw_sections_row(song)
       reaper.ImGui_TextColored(ctx, C.amber, "Replaces the existing tempo map"
         .. (v.tempo_alt.quelle == "reaper" and " (from REAPER)." or " (made by hand)."))
     end
+    -- Which part of the project was read, so a wrong region shows before Apply.
+    local wer = modus == "preprod" and "version" or "song"
+    if v.region then
+      reaper.ImGui_TextColored(ctx, C.text_muted, "Region: \"" .. trim(v.region.name) .. "\"  ("
+        .. format_timecode(v.region.pos) .. " to " .. format_timecode(v.region.rgnend) .. ")"
+        .. (v.region_wie == "offset" and ", starts at the offset" or ""))
+    else
+      reaper.ImGui_TextColored(ctx, modus == "preprod" and C.amber or C.text_muted, "No region named after this " .. wer .. ": from the offset "
+        .. format_timecode(v.offset) .. (modus == "preprod" and ".\nName it like the song plus the version (\"" .. trim(song.title) .. " v2\") or like the file." or "."))
+    end
     if v.new_offset then
-      reaper.ImGui_TextColored(ctx, C.text_muted, "Song start from its region: " .. format_timecode(v.new_offset) .. " (also sets the offset)")
+      reaper.ImGui_TextColored(ctx, C.text_muted, "Start from the region: " .. format_timecode(v.new_offset) .. " (also sets the offset of this " .. wer .. ")")
     end
     if prim_button("Apply") then sections_apply() end
     reaper.ImGui_SameLine(ctx)
