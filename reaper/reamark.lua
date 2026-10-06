@@ -1,9 +1,12 @@
 -- @description Mix Notes
 -- @author Studio OS
--- @version 2.5.3
+-- @version 2.5.4
 -- @provides [main] .
 -- @link GitHub https://github.com/acklin83/reamark
 -- @changelog
+--   Sections from REAPER markers keep millisecond precision, like the tempo map. A marker on a
+--   barline was rounded to a tenth and could land a few milliseconds before the bar, so the player
+--   showed the last beat of the previous bar (30.4 instead of 31).
 --   The window keeps its size: Mix Notes remembers width and height itself, per screen size, and
 --   opens at that size next time (it sometimes came back smaller).
 --   The song start comes from the version's FILE in the project: Sync looks for the item whose
@@ -1348,10 +1351,13 @@ local function sections_prepare(song)
     local name = trim(m.name)
     local covers = m.isrgn and m.pos <= offset + 0.05 and m.rgnend >= stop - 0.05
     if name ~= "" and m ~= song_rgn and not covers and m.pos >= offset - 0.001 and m.pos < stop then
-      local t = math.floor((m.pos - offset) * 10 + 0.5) / 10
+      -- Milliseconds like the tempo map, not tenths: a marker on a barline (115 bpm, bar 31 = 62.6087 s) became
+      -- 62.6, 9 ms before the bar, and the player showed 30.4 (2.5.4). Two markers within a tenth stay one.
+      local t = math.floor((m.pos - offset) * 1000 + 0.5) / 1000
       if t < 0 then t = 0 end
-      if not seen[t] then
-        seen[t] = true
+      local key = math.floor(t * 10 + 0.5)
+      if not seen[key] then
+        seen[key] = true
         list[#list + 1] = { label = name:sub(1, 60), start_sek = t }
       end
     end
