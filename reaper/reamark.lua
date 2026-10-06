@@ -1,9 +1,11 @@
 -- @description Mix Notes
 -- @author Studio OS
--- @version 2.5.2
+-- @version 2.5.3
 -- @provides [main] .
 -- @link GitHub https://github.com/acklin83/reamark
 -- @changelog
+--   The window keeps its size: Mix Notes remembers width and height itself, per screen size, and
+--   opens at that size next time (it sometimes came back smaller).
 --   The song start comes from the version's FILE in the project: Sync looks for the item whose
 --   file has the version's file name (extension, case, "_" and "-" do not matter, so a WAV in
 --   REAPER matches the MP3 in Studio OS) and measures sections and bars from where that file
@@ -1996,12 +1998,36 @@ local function draw_comments_section()
   end
 end
 
+-- Fenstergrösse selbst merken (2.5.3, Frank 06.10.2026: „beim nächsten Öffnen kommt es kleiner wieder"). Nicht nur
+-- ReaImGuis eigener Speicher: der schreibt verzögert und wird über Syncthing zwischen den Macs geteilt. Je
+-- Bildschirmgrösse ein eigener Wert, damit das MacBook dem Studio-Bildschirm nicht die Höhe vorgibt.
+local _vl, _vt, _vr, _vb = reaper.my_getViewport(0, 0, 0, 0, 0, 0, 0, 0, true)
+local groesse_key = "fenster_" .. tostring((_vr or 0) - (_vl or 0)) .. "x" .. tostring((_vb or 0) - (_vt or 0))
+local gemerkt_w, gemerkt_h = (reaper.GetExtState("ReaMark", groesse_key) or ""):match("^(%d+)x(%d+)$")
+local groesse_gesetzt, groesse_zuletzt = false, nil
+
+local function groesse_merken()
+  if reaper.ImGui_IsMouseDown(ctx, 0) then return end   -- erst nach dem Ziehen, nicht bei jedem Bild
+  local w, h = reaper.ImGui_GetWindowSize(ctx)
+  local neu = math.floor(w + 0.5) .. "x" .. math.floor(h + 0.5)
+  if neu == groesse_zuletzt then return end
+  groesse_zuletzt = neu
+  if gemerkt_w and neu == (gemerkt_w .. "x" .. gemerkt_h) then return end
+  reaper.SetExtState("ReaMark", groesse_key, neu, true)
+  gemerkt_w, gemerkt_h = neu:match("^(%d+)x(%d+)$")
+end
+
 ---------------------------------------------------------------------------
 -- Main loop
 ---------------------------------------------------------------------------
 local function loop()
   apply_theme()
-  reaper.ImGui_SetNextWindowSize(ctx, 420, 700, reaper.ImGui_Cond_FirstUseEver())
+  if not groesse_gesetzt and gemerkt_w then
+    reaper.ImGui_SetNextWindowSize(ctx, tonumber(gemerkt_w), tonumber(gemerkt_h), reaper.ImGui_Cond_Always())
+  else
+    reaper.ImGui_SetNextWindowSize(ctx, 420, 700, reaper.ImGui_Cond_FirstUseEver())
+  end
+  groesse_gesetzt = true
   reaper.ImGui_SetNextWindowSizeConstraints(ctx, 420, 300, 9999, 9999)
   local visible, open = reaper.ImGui_Begin(ctx, 'Mix Notes', true)
 
@@ -2012,6 +2038,7 @@ local function loop()
     draw_waveform_section()
     draw_new_comment_section()
     draw_comments_section()
+    groesse_merken()
     reaper.ImGui_End(ctx)
   end
 
