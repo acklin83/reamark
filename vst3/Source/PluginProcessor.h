@@ -38,7 +38,7 @@ public:
 
     // Persistent settings
     juce::String serverUrl;
-    juce::String connectToken;   // per-instance bearer (Studio OS → Settings → Integrationen)
+    juce::String connectToken;   // per-instance bearer (Studionizer → Settings → Integrationen)
     juce::String authorName;
     juce::String lastShareLink;
     bool autoplayEnabled = true;

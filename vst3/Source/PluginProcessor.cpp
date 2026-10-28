@@ -3,11 +3,22 @@
 
 // Per-user global settings (server + connect token + display name). Kept out of the DAW
 // project state on purpose: a shared .rpp must never carry the studio's connect token.
+//
+// Seit 28.10.2026 unter „Studionizer“ statt „Studio OS“ (Hersteller umbenannt). Die alte Datei wird beim ersten Start
+// übernommen, sonst wäre das Studio nach dem Update ausgeloggt; sie bleibt liegen.
+static juce::File settingsFile() {
+    auto basis = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory);
+    auto neu = basis.getChildFile("Studionizer").getChildFile("MixClient.settings");
+    auto alt = basis.getChildFile("Studio OS").getChildFile("MixClient.settings");
+    if (! neu.existsAsFile() && alt.existsAsFile()) {
+        neu.getParentDirectory().createDirectory();
+        alt.copyFileTo(neu);
+    }
+    return neu;
+}
+
 static juce::PropertiesFile& globalSettings() {
-    static juce::PropertiesFile props(
-        juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
-            .getChildFile("Studio OS").getChildFile("MixClient.settings"),
-        juce::PropertiesFile::Options());
+    static juce::PropertiesFile props(settingsFile(), juce::PropertiesFile::Options());
     return props;
 }
 

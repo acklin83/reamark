@@ -33,7 +33,11 @@ FetchContent_MakeAvailable(JUCE)
 juce_add_plugin(ReaMarkPlugin
     # Display name / vendor are white-label neutral. The manufacturer + plugin CODES stay
     # (Stss/Stmx) — they are the DAW plugin identity; changing them orphans existing sessions.
-    COMPANY_NAME            "Studio OS"
+    # Hersteller Studionizer (Frank 28.10.2026: „sollte als entwickler Studionizer haben, nicht Studio OS“). Die VST3-Id
+    # entsteht nur aus den beiden Codes (JUCE `convertJucePluginId`), der Name ändert sie nicht. BUNDLE_ID ausdrücklich,
+    # sonst leitete JUCE sie aus dem Namen ab (bisher „com.Studio OS.ReaMarkPlugin“, mit Leerzeichen).
+    COMPANY_NAME            "Studionizer"
+    BUNDLE_ID               com.studionizer.mixnotes-juce
     PLUGIN_MANUFACTURER_CODE Stss
     PLUGIN_CODE              Stmx
     FORMATS                  VST3

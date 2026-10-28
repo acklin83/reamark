@@ -44,7 +44,7 @@ ReaMarkApi::HttpResponse ReaMarkApi::httpRequest(const juce::String& method,
                                                    const juce::String& endpoint,
                                                    const juce::String& body) {
     HttpResponse result;
-    // Every endpoint lives under the Studio OS /rmc compat prefix on the studio host
+    // Every endpoint lives under the Studionizer /rmc compat prefix on the studio host
     // (e.g. studio.example.com/rmc/admin/projects) — one place, so callers keep the
     // bare /admin and /api paths.
     auto url = juce::URL(serverUrl + "/rmc" + endpoint);
@@ -300,7 +300,7 @@ void ReaMarkApi::loadPeaks(const juce::String& versionId, PeaksCallback callback
 
 void ReaMarkApi::fetchBranding(BrandingCallback callback) {
     threadPool.addJob([this, cb = std::move(callback)]() {
-        // /api/studio is a native Studio OS public endpoint — no /rmc prefix, no auth. Build
+        // /api/studio is a native Studionizer public endpoint — no /rmc prefix, no auth. Build
         // the URL directly rather than via httpRequest (which prepends /rmc).
         auto url = juce::URL(serverUrl + "/api/studio");
         auto options = juce::URL::InputStreamOptions(juce::URL::ParameterHandling::inAddress)

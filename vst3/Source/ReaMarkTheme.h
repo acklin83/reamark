@@ -3,10 +3,10 @@
 
 namespace reamark {
 
-// Studio OS design tokens (studio.css :root, the "Console+" dark theme). The chrome is fixed
+// Studionizer design tokens (studio.css :root, the "Console+" dark theme). The chrome is fixed
 // for every studio; only the accent is per-tenant (see setAccent()).
 namespace Theme {
-    // Studio OS design tokens, Theme „Console+" (studio.css :root, Stand 29.09.2026). Die
+    // Studionizer design tokens, Theme „Console+" (studio.css :root, Stand 29.09.2026). Die
     // Grundfarben sind für jedes Studio gleich; nur der Akzent kommt vom Studio (setAccent()).
     inline juce::Colour bgBody()   { return juce::Colour(0xFF020304); }  // --bg
     inline juce::Colour bgStage()  { return juce::Colour(0xFF0A0E16); }  // --stage
@@ -47,7 +47,7 @@ namespace Theme {
     constexpr float radiusBtn = 8.0f;
 }
 
-// Rolle eines Knopfs wie in Studio OS (studio.css .btn): „primaer" Petrol gefüllt (die eine
+// Rolle eines Knopfs wie in Studionizer (studio.css .btn): „primaer" Petrol gefüllt (die eine
 // Hauptaktion), „neben" dunkel mit Rahmen (.btn.ghost), „link" nur Text (.cmt-act), „pille" die
 // Zeitmarke @1:23. Ohne Angabe: Akzentfarbe = primaer, durchsichtig = link, sonst neben.
 inline void setRolle(juce::Component& c, const char* rolle) { c.getProperties().set("rolle", rolle); }

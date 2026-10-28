@@ -5,7 +5,7 @@
 
 namespace reamark {
 
-// Die Versionen eines Songs als Chips, wie auf der Mix-Notes-Seite von Studio OS (.mx-ver):
+// Die Versionen eines Songs als Chips, wie auf der Mix-Notes-Seite von Studionizer (.mx-ver):
 // „v1  v2 1  v3 2 ★". Die Zahl der offenen Anmerkungen steht in Amber, der Stern an der
 // Lieblingsfassung, die gewählte Version trägt Petrol-Fläche und -Kante. Bricht um, wenn der
 // Platz nicht reicht (heightFor), statt Chips abzuschneiden.
